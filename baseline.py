@@ -5,6 +5,7 @@ import mesa
 import random
 from typing import Union
 import csv
+import matplotlib.pyplot as plt
 
 
 class House(mesa.Agent):
@@ -71,7 +72,7 @@ class SmartGrid(mesa.Model):
 
         # add cables to grid
         self.closest_battery()
-        self.lay_cable()
+        self.lay_cable_random()
 
 
     def bound(self):
@@ -154,16 +155,14 @@ class SmartGrid(mesa.Model):
 
             # calculate difference of 2 closest batteries
             house.two_batteries = prev_dist - min_dist
-            
 
-    def lay_cable(self):
+
+    def lay_cable_random(self):
         count = 1000
-
-        # houses that have a big difference between 2 closest batteries get priority
-        self.houses.sort(key=lambda x: x.two_batteries)
         for house in self.houses:
             lst = []
-            to_x, to_y = house.connection.x, house.connection.y
+            destination = random.choice(self.batteries)
+            to_x, to_y = destination.x, destination.y
 
             small_x, small_y = min([house.x, to_x]), min([house.y, to_y])
             big_x, big_y = max([house.x, to_x]), max([house.y, to_y])
@@ -190,11 +189,11 @@ class SmartGrid(mesa.Model):
         return cable_cost + battery_cost
 
 if __name__ == "__main__":
-    test_wijk_1 = SmartGrid(1)
-    print(test_wijk_1.costs())
+    results = []
+    for i in range(1000):
+        test_wijk_1 = SmartGrid(1)
+        results.append(test_wijk_1.costs())
 
-    test_wijk_2 = SmartGrid(2)
-    print(test_wijk_2.costs())
-
-    test_wijk_3 = SmartGrid(3)
-    print(test_wijk_3.costs())
+    plt.hist(results, bins=20)
+    plt.show()
+        
