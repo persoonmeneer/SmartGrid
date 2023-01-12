@@ -55,6 +55,7 @@ class SmartGrid(mesa.Model):
         self.houses = self.add_objects(district, 'houses')
         self.batteries = self.add_objects(district, 'batteries')
         self.objects = self.houses + self.batteries
+        self.num_cables = 0
 
         width, height = self.bound()
         self.grid = mesa.space.MultiGrid(width + 1, height + 1, False)
@@ -70,6 +71,7 @@ class SmartGrid(mesa.Model):
         # add cables to grid
         self.closest_battery()
         self.lay_cable()
+
 
     def bound(self):
         x = 0
@@ -149,11 +151,14 @@ class SmartGrid(mesa.Model):
                     min_dist = dist
                     house.connection = battery
 
+            # calculate difference of 2 closest batteries
             house.two_batteries = prev_dist - min_dist
 
 
     def lay_cable(self):
         count = 1000
+
+        # houses that have a big difference between 2 closest batteries get priority
         self.houses.sort(key=lambda x: x.two_batteries)
         for house in self.houses:
             lst = []
@@ -166,12 +171,29 @@ class SmartGrid(mesa.Model):
                 count += 1
                 a = Cable(count, self, loc, house.y)
                 lst.append(a)
+                self.num_cables += 1
                 self.grid.place_agent(a, (loc, house.y))
 
             for loc in range(small_y, big_y + 1):
                 count += 1
                 a = Cable(count, self, to_x, loc)
                 lst.append(a)
+                self.num_cables += 1
                 self.grid.place_agent(a, (to_x, loc))
 
             house.cables = lst
+
+    def costs(self):
+        cable_cost = self.num_cables * 9
+        battery_cost = 5000 * len(self.batteries)
+        return cable_cost + battery_cost
+
+if __name__ == "__main__":
+    test_wijk_1 = SmartGrid(1)
+    print(test_wijk_1.costs())
+
+    test_wijk_2 = SmartGrid(2)
+    print(test_wijk_2.costs())
+
+    test_wijk_3 = SmartGrid(3)
+    print(test_wijk_3.costs())
