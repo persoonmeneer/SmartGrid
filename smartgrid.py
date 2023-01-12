@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 import mesa
+import random
 from typing import Union
 import csv
 
@@ -153,7 +154,7 @@ class SmartGrid(mesa.Model):
 
             # calculate difference of 2 closest batteries
             house.two_batteries = prev_dist - min_dist
-
+            
 
     def lay_cable(self):
         count = 1000
