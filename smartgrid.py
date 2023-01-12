@@ -1,4 +1,4 @@
-# Thomas, Karel
+# Thomas, Karel, Joris
 
 from __future__ import annotations
 import mesa
@@ -14,6 +14,7 @@ class House(mesa.Agent):
         self.energy = energy  # energy level
         self.connection = None
         self.cables = []
+        self.two_batteries = 0 # distance between 2 closest batteries
 
     def distance(self, other: Battery) -> float:
         return abs(self.x - other.x) + abs(self.y - other.y)
@@ -137,17 +138,23 @@ class SmartGrid(mesa.Model):
     def closest_battery(self):
         for house in self.houses:
             min_dist = -1
+            prev_dist = -1
             for battery in self.batteries:
                 dist = house.distance(battery)
                 if min_dist == -1 and house.check_connection(battery):
                     min_dist = dist
                     house.connection = battery
                 elif min_dist > dist and house.check_connection(battery):
+                    prev_dist = min_dist
                     min_dist = dist
                     house.connection = battery
 
+            house.two_batteries = prev_dist - min_dist
+
+
     def lay_cable(self):
         count = 1000
+        self.houses.sort(key=lambda x: x.two_batteries)
         for house in self.houses:
             lst = []
             to_x, to_y = house.connection.x, house.connection.y
@@ -168,36 +175,3 @@ class SmartGrid(mesa.Model):
                 self.grid.place_agent(a, (to_x, loc))
 
             house.cables = lst
-
-
-
-def agent_portrayal(agent):
-    portrayal = {"Layer": 1,
-        "r": 1,}
-
-    if type(agent) == House:
-        portrayal["Shape"] = "circle"
-        portrayal["Filled"] = "true"
-        portrayal["Color"] = "blue"
-
-    if type(agent) == Battery:
-        portrayal["Shape"] = "circle"
-        portrayal["Filled"] = "true"
-        portrayal["Color"] = "red"
-
-    if type(agent) == Cable:
-        portrayal["Shape"] = "circle"
-        portrayal["Filled"] = "true"
-        portrayal["Color"] = "black"
-        portrayal["Layer"] = 0
-
-    return portrayal
-
-if __name__ == "__main__":
-    grid = mesa.visualization.CanvasGrid(agent_portrayal, 51, 51, 510, 510)
-
-    server = mesa.visualization.ModularServer(
-        SmartGrid, [grid], "Smart Grid", {"district": 1}
-    )
-    server.port = 8521  # The default
-    server.launch()
