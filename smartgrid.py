@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 import mesa
-import random
-from typing import Union
+from typing import Union, Optional
 import csv
 from operator import attrgetter
 
@@ -15,9 +14,11 @@ class House(mesa.Agent):
         self.x = x  # x coordinate
         self.y = y  # y coordinate
         self.energy = energy  # energy level
-        self.connection: Optional[battery] = None
-        self.cables: list[Cables] = []
-        self.priority: float = 0 # distance between 2 closest batteries
+
+        # initialize connection, cable list and priority level
+        self.connection: Battery = Battery(0, 0, 0, 0, 0)
+        self.cables: list[Cable] = []
+        self.priority: float = 0
 
     def distance(self, other: Battery) -> float:
         return abs(self.x - other.x) + abs(self.y - other.y)
@@ -45,7 +46,8 @@ class Battery(mesa.Agent):
         self.x = x  # x coordinate
         self.y = y  # y coordinate
         self.energy = energy  # energy level
-        self.houses: list[Houses] = []
+        self.houses: list[House] = []
+
 
 class Cable(mesa.Agent):
     def __init__(self, unique_id: int, model: mesa.Model,
@@ -53,7 +55,7 @@ class Cable(mesa.Agent):
         super().__init__(unique_id, model)
         self.x = x  # x coordinate
         self.y = y  # y coordinate
-        self.battery_connection: Optional[Battery] = None   
+        self.battery_connection: Optional[Battery] = None
 
 
 class SmartGrid(mesa.Model):
@@ -61,12 +63,13 @@ class SmartGrid(mesa.Model):
         # objects
         self.houses: list[House] = self.add_objects(district, 'houses')
         self.batteries: list[House] = self.add_objects(district, 'batteries')
-        
+
         # total numher of cable
         self.num_cables = 0
 
         width, height = self.bound()
-        self.grid: mesa.space = mesa.space.MultiGrid(width + 1, height + 1, False)
+        self.grid: mesa.space = mesa.space.MultiGrid(width + 1,
+                                                     height + 1, False)
 
         # add houses to grid
         for i in self.houses:
@@ -78,11 +81,10 @@ class SmartGrid(mesa.Model):
 
         # order placement
         self.placement_order()
-        
+
         # add cables to grid
         self.link_houses()
         self.lay_cable()
-
 
     def bound(self) -> tuple[int, int]:
         """
@@ -91,15 +93,18 @@ class SmartGrid(mesa.Model):
         Returns:
             tuple[int, int]: the maximum x and y values for the grid
         """
-        
+
         # find the maximum x and y values of the houses and battery lists
-        max_x = max([max(self.houses, key=attrgetter('x'))] + [max(self.batteries, key=attrgetter('x'))], key=attrgetter('x'))
-        max_y = max([max(self.houses, key=attrgetter('y'))] + [max(self.batteries, key=attrgetter('y'))], key=attrgetter('y'))
+        max_x = max([max(self.houses, key=attrgetter('x'))] +
+                    [max(self.batteries, key=attrgetter('x'))],
+                    key=attrgetter('x'))
+        max_y = max([max(self.houses, key=attrgetter('y'))] +
+                    [max(self.batteries, key=attrgetter('y'))],
+                    key=attrgetter('y'))
 
         return (max_x.x, max_y.y)
 
-
-    def add_objects(self, district: int, info: str) -> Union[list[House], list[Battery]]:
+    def add_objects(self, district: int,info: str) ->Union[list[House], list[Battery]]:
         """
         Add houses or battery list of district depending on 'info'
 
@@ -156,37 +161,37 @@ class SmartGrid(mesa.Model):
         This function finds the order in which the houses get
         their battery assigned and sort the house list
         """
-        
+
         for house in self.houses:
             # list of distances to all the batteries
             dist_batteries = []
             for battery in self.batteries:
                 # add distance to list
                 dist_batteries.append(house.distance(battery))
-            
+
             # sort the list in ascending order
             dist_batteries.sort()
-            
+
             # assign priority value to house
             house.priority = dist_batteries[1] - dist_batteries[0]
-        
+
         # sort houses based on priority
         self.houses.sort(key=lambda x: x.priority, reverse=True)
-              
+
     def link_houses(self) -> None:
         """
         This function finds the two closest batteries with enough capacity
         for every house and assigns the house to that battery
         """
-        
+
         # find closest battery for every house
         for house in self.houses:
             # smallest distance to a battery
-            min_dist = -1
+            min_dist = -1.0
             for battery in self.batteries:
                 # distance to battery
                 dist = house.distance(battery)
-                
+
                 # if the first battery, make it the smallest distance and connect
                 if min_dist == -1 and house.check_connection(battery):
                     min_dist = dist
@@ -195,21 +200,21 @@ class SmartGrid(mesa.Model):
                 elif min_dist > dist and house.check_connection(battery):
                     min_dist = dist
                     house.connection = battery
-            
+
 
     def lay_cable(self) -> None:
         """
         This function connects the houses with the batteries by placing cables
         """
-        
+
         # unique id for cables
         cable_id = 1000
-        
+
         # create and place the cables for every house
         for house in self.houses:
             # cable list per house
             cable_list = []
-            
+
             # x and y coordinate of the connected battery
             to_x, to_y = house.connection.x, house.connection.y
 
@@ -222,28 +227,28 @@ class SmartGrid(mesa.Model):
                 # create cable at given location and add to list
                 new_cable = Cable(cable_id, self, loc, house.y)
                 cable_list.append(new_cable)
-                
+
                 # update number of cables
                 self.num_cables += 1
-                
+
                 # place cable in the grid
                 self.grid.place_agent(new_cable, (loc, house.y))
-                
+
                 # update cable id
                 cable_id += 1
-                
+
             # place cables in the y range for the batteries' x value
             for loc in range(small_y, big_y + 1):
                 # create cable at given location and add to list
                 new_cable = Cable(cable_id, self, to_x, loc)
                 cable_list.append(new_cable)
-                
+
                 # update number of cables
                 self.num_cables += 1
-                
+
                 # place cable in the grid
                 self.grid.place_agent(new_cable, (to_x, loc))
-                
+ 
                 #  update cable id
                 cable_id += 1
 
@@ -257,11 +262,12 @@ class SmartGrid(mesa.Model):
         Returns:
             int: total costs
         """
-        
+
         cable_cost = self.num_cables * 9
         battery_cost = 5000 * len(self.batteries)
-        
+
         return cable_cost + battery_cost
+
 
 if __name__ == "__main__":
     test_wijk_1 = SmartGrid(1)
