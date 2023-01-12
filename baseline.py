@@ -162,6 +162,10 @@ class SmartGrid(mesa.Model):
         for house in self.houses:
             lst = []
             destination = random.choice(self.batteries)
+            
+            while not house.connection(destination):
+                destination = random.choice(self.batteries)
+
             to_x, to_y = destination.x, destination.y
 
             small_x, small_y = min([house.x, to_x]), min([house.y, to_y])
@@ -190,7 +194,7 @@ class SmartGrid(mesa.Model):
 
 if __name__ == "__main__":
     results = []
-    for i in range(1000):
+    for i in range(10000):
         test_wijk_1 = SmartGrid(1)
         results.append(test_wijk_1.costs())
 
