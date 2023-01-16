@@ -5,64 +5,19 @@ import mesa
 from typing import Union, Optional
 import csv
 from operator import attrgetter
-
-
-class House(mesa.Agent):
-    def __init__(self, unique_id: int, model: mesa.model,
-                 x: int, y: int, energy: float) -> None:
-        super().__init__(unique_id, model)
-        self.x = x  # x coordinate
-        self.y = y  # y coordinate
-        self.energy = energy  # energy level
-
-        # initialize connection, cable list and priority level
-        self.connection: Battery = Battery(0, 0, 0, 0, 0)
-        self.cables: list[Cable] = []
-        self.priority: float = 0
-
-    def distance(self, other: Battery) -> float:
-        return abs(self.x - other.x) + abs(self.y - other.y)
-
-    def connect(self, other: House) -> None:
-        """
-        Reduces the remaining energy in the battery
-
-        Args:
-            other (House): A House with energy
-        """
-
-        other.energy -= self.energy
-
-    def check_connection(self, other: Battery) -> bool:
-        if other.energy - self.energy >= 0:
-            return True
-        return False
-
-
-class Battery(mesa.Agent):
-    def __init__(self, unique_id: int, model: mesa.model,
-                 x: int, y: int, energy: float) -> None:
-        super().__init__(unique_id, model)
-        self.x = x  # x coordinate
-        self.y = y  # y coordinate
-        self.energy = energy  # energy level
-        self.houses: list[House] = []
-
-
-class Cable(mesa.Agent):
-    def __init__(self, unique_id: int, model: mesa.Model,
-                 x: int, y: int) -> None:
-        super().__init__(unique_id, model)
-        self.x = x  # x coordinate
-        self.y = y  # y coordinate
-        self.battery_connection: Optional[Battery] = None
-
+from Agents.cable import Cable
+from Agents.house import House
+from Agents.battery import Battery
+        
 
 class SmartGrid(mesa.Model):
     def __init__(self, district: int) -> None:
         # objects
         self.houses: list[House] = self.add_objects(district, 'houses')
         self.batteries: list[House] = self.add_objects(district, 'batteries')
+        self.cables: list[Cable] = []
+        self.district = district
+        self.information = []
 
         # total numher of cable
         self.num_cables = 0
@@ -85,6 +40,10 @@ class SmartGrid(mesa.Model):
         # add cables to grid
         self.link_houses()
         self.lay_cable()
+        
+        # get representation info
+        self.get_information()
+        print(self.information)
 
     def bound(self) -> tuple[int, int]:
         """
@@ -103,58 +62,6 @@ class SmartGrid(mesa.Model):
                     key=attrgetter('y'))
 
         return (max_x.x, max_y.y)
-
-    def add_objects(self, district: int,info: str) ->Union[list[House], list[Battery]]:
-        """
-        Add houses or battery list of district depending on 'info'
-
-        Args:
-            district (int): district number
-            info (str): 'houses' or 'batteries'
-
-        Returns:
-            Union[list[House], list[Battery]]: a list with all the houses or batteries
-        """
-
-        # path to data
-        path = 'Huizen&Batterijen/district_' + str(district) + '/district-' + str(district) + '_' +  info + '.csv'
-
-        # list with the information
-        lst = []
-
-        # add the information to the list
-        with open(path, 'r') as csv_file:
-            data = csv.reader(csv_file)
-
-            # index to skip header
-            count = 0
-
-            # go through all rows except the first
-            for line in data:
-                # skip header
-                if count == 0:
-                    count += 1
-                    continue
-
-                # convert the data to a neat list with floats
-                if not line[0].isnumeric():
-                    neat_data = line[0].split(',')
-                    line = neat_data + [line[1]]
-
-                # information
-                x = int(line[0])
-                y = int(line[1])
-                energy = float(line[2])
-
-                # append a house or Battery
-                if info == 'houses':
-                    lst.append(House(count, self, x, y, energy))
-                else:
-                    lst.append(Battery(count, self, x, y, energy))
-
-                count += 1
-
-        return lst
 
     def placement_order(self) -> None:
         """
@@ -188,6 +95,13 @@ class SmartGrid(mesa.Model):
         for house in self.houses:
             # smallest distance to a battery
             min_dist = -1.0
+            
+            # index battery
+            index = 0
+            
+            # best battery index for the house
+            best_index = 0
+            
             for battery in self.batteries:
                 # distance to battery
                 dist = house.distance(battery)
@@ -195,13 +109,18 @@ class SmartGrid(mesa.Model):
                 # if the first battery, make it the smallest distance and connect
                 if min_dist == -1 and house.check_connection(battery):
                     min_dist = dist
-                    house.connection = battery
+                    house.connect(battery)
+                    best_index = index
                 # if distance to new battery is smaller than minimum, update
                 elif min_dist > dist and house.check_connection(battery):
                     min_dist = dist
-                    house.connection = battery
-
-
+                    house.connect(battery)
+                    best_index = index
+                    
+                index += 1
+                
+            self.batteries[best_index].houses.append(house)
+                    
     def lay_cable(self) -> None:
         """
         This function connects the houses with the batteries by placing cables
@@ -267,7 +186,96 @@ class SmartGrid(mesa.Model):
         battery_cost = 5000 * len(self.batteries)
 
         return cable_cost + battery_cost
+    
+    def get_information(self) -> None:
+        """
+        This function creates the representation of the data
+        """
+        
+        # dictionary for general information
+        dct = {}
+        dct["district"] = self.district
+        dct["costs-shared"] = self.costs()
+        
+        # add general information to information list
+        self.information.append(dct)
+        
+        # for every battery make a dictionary with its information
+        for battery in self.batteries:
+            # dictionary of battery
+            dct = {}
+            dct["location"] = str(battery.x) + "," + str(battery.y)
+            dct["capacity"] = battery.capacity
+            dct["houses"] = []
+            
+            # for every house make a dictionary with its information
+            for house in battery.houses:
+                # dictionary for house
+                dct_house = {}
+                dct_house["location"] = str(house.x) + "," + str(house.y)
+                dct_house["output"] = house.energy
+                dct_house["cables"] = []
+                
+                # add location of all cables connected to houses
+                # in the dictionary of information houses
+                for cable in house.cables:
+                    dct_house["cables"].append(str(cable.x) + "," + str(cable.y))
+                dct["houses"].append(dct_house)
+            
+            # add all information to self.information
+            self.information.append(dct)
+        
+    def add_objects(self, district: int, info: str) ->Union[list[House], list[Battery]]:
+        """
+        Add houses or battery list of district depending on 'info'
 
+        Args:
+            district (int): district number
+            info (str): 'houses' or 'batteries'
+
+        Returns:
+            Union[list[House], list[Battery]]: a list with all the houses or batteries
+        """
+
+        # path to data
+        path = 'Huizen&Batterijen/district_' + str(district) + '/district-' + str(district) + '_' +  info + '.csv'
+
+        # list with the information
+        lst = []
+
+        # add the information to the list
+        with open(path, 'r') as csv_file:
+            data = csv.reader(csv_file)
+
+            # index to skip header
+            count = 0
+
+            # go through all rows except the first
+            for line in data:
+                # skip header
+                if count == 0:
+                    count += 1
+                    continue
+
+                # convert the data to a neat list with floats
+                if not line[0].isnumeric():
+                    neat_data = line[0].split(',')
+                    line = neat_data + [line[1]]
+
+                # information
+                x = int(line[0])
+                y = int(line[1])
+                energy = float(line[2])
+
+                # append a house or Battery
+                if info == 'houses':
+                    lst.append(House(count, self, x, y, energy))
+                else:
+                    lst.append(Battery(count, self, x, y, energy))
+
+                count += 1
+
+        return lst
 
 if __name__ == "__main__":
     test_wijk_1 = SmartGrid(1)

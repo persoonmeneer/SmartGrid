@@ -3,7 +3,7 @@
 from __future__ import annotations
 import mesa
 import random
-from typing import Union
+from typing import Union, Optional
 import csv
 import matplotlib.pyplot as plt
 import copy
