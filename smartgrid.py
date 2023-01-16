@@ -23,7 +23,7 @@ class House(mesa.Agent):
     def distance(self, other: Battery) -> float:
         return abs(self.x - other.x) + abs(self.y - other.y)
 
-    def connect(self, other: House) -> None:
+    def connect(self, other: Battery) -> None:
         """
         Reduces the remaining energy in the battery
 
@@ -32,6 +32,7 @@ class House(mesa.Agent):
         """
 
         other.energy -= self.energy
+        self.connection = other
 
     def check_connection(self, other: Battery) -> bool:
         if other.energy - self.energy >= 0:
@@ -55,7 +56,7 @@ class Cable(mesa.Agent):
         super().__init__(unique_id, model)
         self.x = x  # x coordinate
         self.y = y  # y coordinate
-        self.battery_connection: Optional[Battery] = None
+        self.battery_connection: Battery = Battery(0, 0, 0, 0, 0)
 
 
 class SmartGrid(mesa.Model):
@@ -195,11 +196,11 @@ class SmartGrid(mesa.Model):
                 # if the first battery, make it the smallest distance and connect
                 if min_dist == -1 and house.check_connection(battery):
                     min_dist = dist
-                    house.connection = battery
+                    house.connect(battery)
                 # if distance to new battery is smaller than minimum, update
                 elif min_dist > dist and house.check_connection(battery):
                     min_dist = dist
-                    house.connection = battery
+                    house.connect(battery)
 
 
     def lay_cable(self) -> None:
