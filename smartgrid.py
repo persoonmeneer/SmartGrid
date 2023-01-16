@@ -8,6 +8,7 @@ from operator import attrgetter
 from Agents.cable import Cable
 from Agents.house import House
 from Agents.battery import Battery
+import json
         
 
 class SmartGrid(mesa.Model):
@@ -280,9 +281,17 @@ class SmartGrid(mesa.Model):
 if __name__ == "__main__":
     test_wijk_1 = SmartGrid(1)
     print(test_wijk_1.costs())
+    with open("district1.json", "w") as outfile:
+        json.dump(test_wijk_1.information, outfile)
 
     test_wijk_2 = SmartGrid(2)
     print(test_wijk_2.costs())
+    with open("district2.json", "w") as outfile:
+        json.dump(test_wijk_2.information, outfile)
 
     test_wijk_3 = SmartGrid(3)
     print(test_wijk_3.costs())
+    with open("district3.json", "w") as outfile:
+        json.dump(test_wijk_3.information, outfile)
+    
+    
