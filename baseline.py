@@ -6,6 +6,7 @@ import random
 from typing import Union
 import csv
 import matplotlib.pyplot as plt
+import copy
 
 
 class House(mesa.Agent):
@@ -58,6 +59,7 @@ class SmartGrid(mesa.Model):
         self.batteries = self.add_objects(district, 'batteries')
         self.objects = self.houses + self.batteries
         self.num_cables = 0
+        self.success = True
 
         width, height = self.bound()
         self.grid = mesa.space.MultiGrid(width + 1, height + 1, False)
@@ -71,7 +73,6 @@ class SmartGrid(mesa.Model):
             self.grid.place_agent(i, (i.x, i.y))
 
         # add cables to grid
-        self.closest_battery()
         self.lay_cable_random()
 
 
@@ -139,33 +140,29 @@ class SmartGrid(mesa.Model):
 
         return lst
 
-    def closest_battery(self):
-        for house in self.houses:
-            min_dist = -1
-            prev_dist = -1
-            for battery in self.batteries:
-                dist = house.distance(battery)
-                if min_dist == -1 and house.check_connection(battery):
-                    min_dist = dist
-                    house.connection = battery
-                elif min_dist > dist and house.check_connection(battery):
-                    prev_dist = min_dist
-                    min_dist = dist
-                    house.connection = battery
-
-            # calculate difference of 2 closest batteries
-            house.two_batteries = prev_dist - min_dist
-
-
     def lay_cable_random(self):
         count = 1000
+        
+        random.shuffle(self.houses)
+        
         for house in self.houses:
+            i = 0
             lst = []
-            destination = random.choice(self.batteries)
-            
-            while not house.connection(destination):
-                destination = random.choice(self.batteries)
+            destination = random.choice(range(len(self.batteries)))
 
+            while not house.check_connection(self.batteries[destination]):
+                i += 1
+                if i == len(self.batteries):
+                    self.success = False
+                    return
+                
+                destination += 1
+                if destination > len(self.batteries) - 1:
+                    destination = 0
+
+            destination = self.batteries[destination]
+            house.connect(destination)
+            
             to_x, to_y = destination.x, destination.y
 
             small_x, small_y = min([house.x, to_x]), min([house.y, to_y])
@@ -188,16 +185,27 @@ class SmartGrid(mesa.Model):
             house.cables = lst
 
     def costs(self):
+        if self.success == False:
+            return None
+        
         cable_cost = self.num_cables * 9
         battery_cost = 5000 * len(self.batteries)
         return cable_cost + battery_cost
 
 if __name__ == "__main__":
     results = []
+    fails = 0
+    
     for i in range(10000):
         test_wijk_1 = SmartGrid(1)
-        results.append(test_wijk_1.costs())
-
+        if test_wijk_1.costs() != None:
+            results.append(test_wijk_1.costs())
+        else:
+            fails += 1
+    
+    perc_succes = (fails / 10000) * 100
+    print(perc_succes)
+    
     plt.hist(results, bins=20)
     plt.show()
         
