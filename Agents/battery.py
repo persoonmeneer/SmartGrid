@@ -7,5 +7,6 @@ class Battery(mesa.Agent):
         super().__init__(unique_id, model)
         self.x = x  # x coordinate
         self.y = y  # y coordinate
-        self.energy = energy  # energy level
+        self.capacity = energy  # total capacity of battery
+        self.energy = energy  # remaining energy
         self.houses: list[House] = []
