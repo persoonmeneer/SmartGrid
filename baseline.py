@@ -3,54 +3,14 @@
 from __future__ import annotations
 import mesa
 import random
+from Agents.cable import Cable
+from Agents.house import House
+from Agents.battery import Battery
 from typing import Union, Optional
 import csv
 import matplotlib.pyplot as plt
 import copy
-
-
-class House(mesa.Agent):
-    def __init__(self, unique_id, model, x, y, energy) -> None:
-        super().__init__(unique_id, model)
-        self.x = x  # x coordinate
-        self.y = y  # y coordinate
-        self.energy = energy  # energy level
-        self.connection = None
-        self.cables = []
-        self.two_batteries = 0 # distance between 2 closest batteries
-
-    def distance(self, other: Battery) -> float:
-        return abs(self.x - other.x) + abs(self.y - other.y)
-
-    def connect(self, other: House) -> None:
-        """
-        Reduces the remaining energy in the battery
-
-        Args:
-            other (House): A House with energy
-        """
-
-        other.energy -= self.energy
-
-    def check_connection(self, other: Battery) -> bool:
-        if other.energy - self.energy >= 0:
-            return True
-        return False
-
-
-class Battery(mesa.Agent):
-    def __init__(self, unique_id, model, x, y, energy) -> None:
-        super().__init__(unique_id, model)
-        self.x = x  # x coordinate
-        self.y = y  # y coordinate
-        self.energy = energy  # energy level
-        self.houses = []
-
-class Cable(mesa.Agent):
-    def __init__(self, unique_id, model, x, y):
-        super().__init__(unique_id, model)
-        self.x = x  # x coordinate
-        self.y = y  # y coordinate
+import pandas as pd
 
 
 class SmartGrid(mesa.Model):
@@ -60,6 +20,7 @@ class SmartGrid(mesa.Model):
         self.objects = self.houses + self.batteries
         self.num_cables = 0
         self.success = True
+        self.costs_grid = 0
 
         width, height = self.bound()
         self.grid = mesa.space.MultiGrid(width + 1, height + 1, False)
@@ -141,18 +102,19 @@ class SmartGrid(mesa.Model):
         return lst
 
     def lay_cable_random(self):
-        count = 1000
+        cable_id = 1000
         
         random.shuffle(self.houses)
         
         for house in self.houses:
-            i = 0
-            lst = []
+            # pick a random battery as destination
             destination = random.choice(range(len(self.batteries)))
 
+            counter = 0
+            # if the battery is not available pick a new one
             while not house.check_connection(self.batteries[destination]):
-                i += 1
-                if i == len(self.batteries):
+                counter += 1
+                if counter == len(self.batteries):
                     self.success = False
                     return
                 
@@ -163,49 +125,116 @@ class SmartGrid(mesa.Model):
             destination = self.batteries[destination]
             house.connect(destination)
             
-            to_x, to_y = destination.x, destination.y
+            # cable list per house
+            cable_list = []
 
-            small_x, small_y = min([house.x, to_x]), min([house.y, to_y])
-            big_x, big_y = max([house.x, to_x]), max([house.y, to_y])
+            # x and y coordinate of the connected battery
+            battery = house.connection
 
-            for loc in range(small_x, big_x + 1):
-                count += 1
-                a = Cable(count, self, loc, house.y)
-                lst.append(a)
-                self.num_cables += 1
-                self.grid.place_agent(a, (loc, house.y))
+            # order the x and y values s.t. the cables can be laid
+            small_x, big_x = min([house.x, battery.x]), max([house.x, battery.x])
+            small_y, big_y = min([house.y, battery.y]), max([house.y, battery.y])
 
-            for loc in range(small_y, big_y + 1):
-                count += 1
-                a = Cable(count, self, to_x, loc)
-                lst.append(a)
-                self.num_cables += 1
-                self.grid.place_agent(a, (to_x, loc))
+            if house.y < battery.y:
+                from_y, from_x = house.y, house.x
+                to_x, to_y = battery.x, battery.y
+            else:
+                from_y, from_x = battery.y, battery.x
+                to_x, to_y = house.x, house.y
 
-            house.cables = lst
+            i = 0
 
+    	    
+            battery_block = True
+            break_out_flag = False
+
+            while battery_block == True:
+                # no battery block found yet
+                battery_block = False
+                
+                # make the path
+                y1 = [(from_x, from_y + j) for j in range(i + 1)]
+                x1 = [(j, from_y + i) for j in range(small_x, big_x + 1)]
+                x2 = [(to_x, j) for j in range(from_y + i, to_y)]
+                
+                # remove the house and battery location
+                if i > 0:
+                    y1.pop(0)
+                
+                if len(x2) > 0:
+                    x2.pop()
+
+                # merge locations in one list
+                cor_arr = y1 + x1 + x2
+                # get all contents of the grid of the locations
+                content = self.grid.get_cell_list_contents(cor_arr)
+                
+                # check if there is a different battery in path
+                if any(isinstance(x, Battery) for x in content):
+                        battery_block = True
+                        i += 1
+
+            for y in range(from_y, from_y + i):
+                # add cable to the given house
+                self.addCable(small_x, y, house, cable_id)
+                # update cable id
+                cable_id += 1
+
+            for x in range(small_x, big_x + 1):
+                # add cable to the given house
+                self.addCable(x, small_y + i, house, cable_id)
+                # update cable id
+                cable_id += 1
+
+            for y in range(from_y + i, to_y + 1):
+                # add cable to the given house
+                self.addCable(to_x, y, house, cable_id)
+                # update cable id
+                cable_id += 1
+
+    def addCable(self, x, y, house, cable_id):
+        new_cable = Cable(cable_id, self, x, y)
+        house.addCable(new_cable)
+
+        # update number of cables
+        self.num_cables += 1
+
+        # place cable in the grid
+        self.grid.place_agent(new_cable, (x, y))
+        
     def costs(self):
         if self.success == False:
             return None
         
         cable_cost = self.num_cables * 9
         battery_cost = 5000 * len(self.batteries)
-        return cable_cost + battery_cost
+        self.costs_grid = cable_cost + battery_cost
+        return self.costs_grid
+    
 
 if __name__ == "__main__":
     results = []
     fails = 0
     
-    for i in range(10000):
+    runs = 100000
+    for i in range(runs):
         test_wijk_1 = SmartGrid(1)
         if test_wijk_1.costs() != None:
             results.append(test_wijk_1.costs())
         else:
             fails += 1
     
-    perc_succes = (fails / 10000) * 100
-    print(perc_succes)
+    perc_fails = (fails / runs) * 100
+    print(perc_fails)
     
     plt.hist(results, bins=20)
     plt.show()
+    
+    results.append(perc_fails)
+    
+    df = pd.DataFrame(results, columns = ["Costs"])
+    
+    
+        
+  
         
