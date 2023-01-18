@@ -15,6 +15,9 @@ class House(mesa.Agent):
         self.cables: list[Cable] = []
         self.priority: float = 0
 
+    def addCable(self, cable: Cable):
+        self.cables.append(cable)
+
     def distance(self, other: Battery) -> float:
         return abs(self.x - other.x) + abs(self.y - other.y)
 

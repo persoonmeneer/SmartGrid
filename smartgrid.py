@@ -44,7 +44,7 @@ class SmartGrid(mesa.Model):
         
         # get representation info
         self.get_information()
-        print(self.information)
+        # print(self.information)
 
     def bound(self) -> tuple[int, int]:
         """
@@ -136,44 +136,77 @@ class SmartGrid(mesa.Model):
             cable_list = []
 
             # x and y coordinate of the connected battery
-            to_x, to_y = house.connection.x, house.connection.y
+            battery = house.connection
 
             # order the x and y values s.t. the cables can be laid
-            small_x, small_y = min([house.x, to_x]), min([house.y, to_y])
-            big_x, big_y = max([house.x, to_x]), max([house.y, to_y])
+            small_x, big_x = min([house.x, battery.x]), max([house.x, battery.x])
+            small_y, big_y = min([house.y, battery.y]), max([house.y, battery.y])
 
-            # place cables in the x range for the house's y value
-            for loc in range(small_x, big_x + 1):
-                # create cable at given location and add to list
-                new_cable = Cable(cable_id, self, loc, house.y)
-                cable_list.append(new_cable)
+            if house.y < battery.y:
+                from_y, from_x = house.y, house.x
+                to_x, to_y = battery.x, battery.y
+            else:
+                from_y, from_x = battery.y, battery.x
+                to_x, to_y = house.x, house.y
 
-                # update number of cables
-                self.num_cables += 1
+            i = 0
 
-                # place cable in the grid
-                self.grid.place_agent(new_cable, (loc, house.y))
+    	    
+            battery_block = True
+            break_out_flag = False
 
+            while battery_block == True:
+                # no battery block found yet
+                battery_block = False
+                
+                # make the path
+                y1 = [(from_x, from_y + j) for j in range(i + 1)]
+                x1 = [(j, from_y + i) for j in range(small_x, big_x + 1)]
+                x2 = [(to_x, j) for j in range(from_y + i, to_y)]
+                # remove the house and battery location
+                if i > 0:
+                    y1.pop(0)
+                
+                if len(x2) > 0:
+                    x2.pop()
+
+                # merge locations in one list
+                cor_arr = y1 + x1 + x2
+                # get all contents of the grid of the locations
+                content = self.grid.get_cell_list_contents(cor_arr)
+                
+                # check if not destination battery
+                if any(isinstance(x, Battery) for x in content):
+                        battery_block = True
+                        i += 1
+
+            for y in range(from_y, from_y + i):
+                # add cable to the given house
+                self.addCable(small_x, y, house, cable_id)
                 # update cable id
                 cable_id += 1
 
-            # place cables in the y range for the batteries' x value
-            for loc in range(small_y, big_y + 1):
-                # create cable at given location and add to list
-                new_cable = Cable(cable_id, self, to_x, loc)
-                cable_list.append(new_cable)
-
-                # update number of cables
-                self.num_cables += 1
-
-                # place cable in the grid
-                self.grid.place_agent(new_cable, (to_x, loc))
- 
-                #  update cable id
+            for x in range(small_x, big_x + 1):
+                # add cable to the given house
+                self.addCable(x, small_y + i, house, cable_id)
+                # update cable id
                 cable_id += 1
 
-            # assign cable list to the house
-            house.cables = cable_list
+            for y in range(from_y + i, to_y + 1):
+                # add cable to the given house
+                self.addCable(to_x, y, house, cable_id)
+                # update cable id
+                cable_id += 1
+            
+    def addCable(self, x, y, house, cable_id):
+        new_cable = Cable(cable_id, self, x, y)
+        house.addCable(new_cable)
+
+        # update number of cables
+        self.num_cables += 1
+
+        # place cable in the grid
+        self.grid.place_agent(new_cable, (x, y))
 
     def costs(self) -> int:
         """
