@@ -31,7 +31,7 @@ class SmartGrid(mesa.Model):
         for i in self.houses:
             self.grid.place_agent(i, (i.x, i.y))
 
-        # add batteries to grid
+        # # add batteries to grid
         for i in self.batteries:
             self.grid.place_agent(i, (i.x, i.y))
 
@@ -44,7 +44,6 @@ class SmartGrid(mesa.Model):
         
         # get representation info
         self.get_information()
-        # print(self.information)
 
     def bound(self) -> tuple[int, int]:
         """
@@ -110,16 +109,14 @@ class SmartGrid(mesa.Model):
                 # if the first battery, make it the smallest distance and connect
                 if min_dist == -1 and house.check_connection(battery):
                     min_dist = dist
-                    house.connect(battery)
                     best_index = index
                 # if distance to new battery is smaller than minimum, update
                 elif min_dist > dist and house.check_connection(battery):
                     min_dist = dist
-                    house.connect(battery)
                     best_index = index
                     
                 index += 1
-                
+            house.connect(self.batteries[best_index])
             self.batteries[best_index].houses.append(house)
                     
     def lay_cable(self) -> None:
@@ -142,12 +139,15 @@ class SmartGrid(mesa.Model):
             small_x, big_x = min([house.x, battery.x]), max([house.x, battery.x])
             small_y, big_y = min([house.y, battery.y]), max([house.y, battery.y])
 
+            beginHouse = True
+
             if house.y < battery.y:
                 from_y, from_x = house.y, house.x
                 to_x, to_y = battery.x, battery.y
             else:
                 from_y, from_x = battery.y, battery.x
                 to_x, to_y = house.x, house.y
+                beginHouse = False
 
             i = 0
 
@@ -160,43 +160,60 @@ class SmartGrid(mesa.Model):
                 battery_block = False
                 
                 # make the path
-                y1 = [(from_x, from_y + j) for j in range(i + 1)]
+                y1 = [(from_x, from_y + j) for j in range(i)]
                 x1 = [(j, from_y + i) for j in range(small_x, big_x + 1)]
-                x2 = [(to_x, j) for j in range(from_y + i, to_y)]
+                y2 = [(to_x, j) for j in range(from_y + i, to_y + 1)]
                 # remove the house and battery location
                 if i > 0:
                     y1.pop(0)
                 
-                if len(x2) > 0:
-                    x2.pop()
+                if len(y2) > 0:
+                    y2.pop()
 
                 # merge locations in one list
-                cor_arr = y1 + x1 + x2
+                if beginHouse:
+                    cor_arr = list(set((y1 + x1 + y2)))
+                else:
+                    y2.reverse()
+                    cor_arr = list(set((y2 + x1 + y1)))
+
                 # get all contents of the grid of the locations
                 content = self.grid.get_cell_list_contents(cor_arr)
+
+                print(cor_arr)
                 
                 # check if not destination battery
-                if any(isinstance(x, Battery) for x in content):
+                
+
+                for bat in self.batteries:
+                    if bat in content and not (bat.x == battery.x and bat.y == battery.y):
                         battery_block = True
                         i += 1
 
-            for y in range(from_y, from_y + i):
-                # add cable to the given house
-                self.addCable(small_x, y, house, cable_id)
+            cable_id = 0
+            for cor in cor_arr:
+                self.addCable(cor[0], cor[1], house, cable_id)
                 # update cable id
                 cable_id += 1
 
-            for x in range(small_x, big_x + 1):
-                # add cable to the given house
-                self.addCable(x, small_y + i, house, cable_id)
-                # update cable id
-                cable_id += 1
 
-            for y in range(from_y + i, to_y + 1):
-                # add cable to the given house
-                self.addCable(to_x, y, house, cable_id)
-                # update cable id
-                cable_id += 1
+            # for y in range(from_y, from_y + i):
+            #     # add cable to the given house
+            #     self.addCable(small_x, y, house, cable_id)
+            #     # update cable id
+            #     cable_id += 1
+
+            # for x in range(small_x, big_x + 1):
+            #     # add cable to the given house
+            #     self.addCable(x, small_y + i, house, cable_id)
+            #     # update cable id
+            #     cable_id += 1
+
+            # for y in range(from_y + i, to_y + 1):
+            #     # add cable to the given house
+            #     self.addCable(to_x, y, house, cable_id)
+            #     # update cable id
+            #     cable_id += 1
             
     def addCable(self, x, y, house, cable_id):
         new_cable = Cable(cable_id, self, x, y)
