@@ -55,11 +55,16 @@ class SmartGrid(mesa.Model):
 
         # add cables to grid
         self.link_houses()
-        self.lay_cable()
+        # self.lay_cable()
+        self.connect()
         
         # get representation info
         self.get_information()
         # print(self.information)
+
+    def connect(self):
+        for battery in self.batteries:
+            battery.connectAllHouses()
 
     def bound(self) -> tuple[int, int]:
         """
