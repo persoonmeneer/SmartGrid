@@ -21,7 +21,11 @@ class Battery(mesa.Agent):
         """
         # if not all paths are connected, we will connect the closesed paths
         while len(self.all_paths) > 1:
+            # if len(self.all_paths) == 2:
+                # print(self.all_paths)
+                # print("break")
             self.shortersPath()
+            # print(len(self.all_paths))
 
         # if all paths are connected, draw all the cables
         self.drawLines(self.all_paths[0])
@@ -52,6 +56,43 @@ class Battery(mesa.Agent):
         # append the coordinate of the house to the paths property
         self.all_paths.append([(house.x, house.y)])
 
+    # def shortersPathNew(self)
+    #     """
+    #     this function will check which paths are closesed to each other
+    #     after that it will connect the paths with a path
+    #     """
+    #     # get all the paths
+    #     all_paths = self.all_paths
+    #     total_paths = len(all_paths)
+
+    #     min_distance = 1000
+    #     for i in range(total_paths):
+    #         for j in range(i + 1, total_paths):
+    #             path_1 = all_paths[i]
+    #             path_2 = all_paths[j]
+
+    #             distance, index_1, index_2 = self.distancePaths(path_1, path_2)
+
+    #             if distance < min_distance:
+    #                 min_distance = distance
+    #                 path_index_1 = [i]
+    #                 path_index_2 = [j]
+    #                 cor_index_1 = [index_1]
+    #                 cor_index_2 = [index_2]
+    #             elif distance = min_distance:
+    #                 path_index_1.append(i)
+    #                 path_index_2.append(j)
+    #                 cor_index_1.append(index_1)
+    #                 cor_index_2.append(index_2)
+
+        all_indexes = len(parh_index_1)
+    #     for i in range(all_indexes):
+            
+    #     # get best path between the found closest paths
+    #     path = self.getBestPath(all_paths[path_index_1][cor_index_1], all_paths[path_index_2][cor_index_2])
+    #     # now connect the paths together
+    #     self.connectPaths(path_index_1, path_index_2, path)
+
     def shortersPath(self):
         """
         this function will check which paths are closesed to each other
@@ -77,7 +118,7 @@ class Battery(mesa.Agent):
                     cor_index_2 = index_2
 
         # get best path between the found closest paths
-        path = self.getBestPath(all_paths[path_index_1][cor_index_1], all_paths[path_index_2][cor_index_2])
+        path = self.getBestPath(all_paths[path_index_1][cor_index_1], all_paths[path_index_2][cor_index_2], path_index_1, path_index_2)
         # now connect the paths together
         self.connectPaths(path_index_1, path_index_2, path)
 
@@ -90,6 +131,7 @@ class Battery(mesa.Agent):
         self.all_paths[path_index_2] = self.all_paths[path_index_1] + self.all_paths[path_index_2] + path
         # delete the old path
         del self.all_paths[path_index_1]
+        
 
     def getPath1(self, cor_1: tuple(int, int), cor_2: tuple(int, int)) -> list[tuple(int, int)]:
         """
@@ -174,7 +216,7 @@ class Battery(mesa.Agent):
         return cor_arr
     
 
-    def getBestPath(self, cor_1: tuple(int, int), cor_2: tuple(int, int)) -> list[tuple(int, int)]:
+    def getBestPath(self, cor_1: tuple(int, int), cor_2: tuple(int, int), path_index_1, path_index_2) -> list[tuple(int, int)]:
         """"
         this function will return the best path that we can draw between
         two coorinates
@@ -185,18 +227,21 @@ class Battery(mesa.Agent):
         path_2 = self.getPath2(cor_1, cor_2)
 
         # get the distance of both paths
-        distance_1 = self.minDistancePathToAllPaths(path_1)
-        distance_2 = self.minDistancePathToAllPaths(path_2)
+        if len(self.all_paths) > 2:
+
+            distance_1 = self.minDistancePathToAllPaths(path_1, path_index_1, path_index_2)
+            distance_2 = self.minDistancePathToAllPaths(path_2, path_index_1, path_index_2)
      
-        # check which path is the shorters
-        if distance_1 < distance_2:
-            return path_1
-            # self.connectCluster(path_1, path_1_index, path)
-        else: 
-            return path_2
-            # self.connectCluster(path_2)
-        
-    def minDistancePathToAllPaths(self, path: list[tuple(int, int)]) -> tuple(int, int, int, int):
+            # check which path is the shorters
+            if distance_1 < distance_2:
+                return path_1
+                # self.connectCluster(path_1, path_1_index, path)
+            else: 
+                return path_2
+                # self.connectCluster(path_2)
+        return path_1
+            
+    def minDistancePathToAllPaths(self, path: list[tuple(int, int)], path_index_1, path_index_2) -> tuple(int, int, int, int):
         """
         this function gets the minimal distance from a input path to all the paths
         """
@@ -204,15 +249,17 @@ class Battery(mesa.Agent):
         # get all paths
         all_paths = self.all_paths
         total_paths = len(all_paths)
+        # print(total_paths)
 
         min_distance = 1000
-        path_index = 0
-        cor_index_1 = 0
-        cor_index_2 = 0
+        
 
         # get the smallest distance
         for i in range(total_paths):
+            if i == path_index_1 or i == path_index_2:
+                continue
             distance, cor_1, cor_2 = self.distancePaths(all_paths[i], path)
+            
             if distance < min_distance and distance != 0:
 
                 min_distance = distance
