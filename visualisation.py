@@ -7,9 +7,22 @@ def agent_portrayal(agent):
         "r": 1,}
 
     if type(agent) == House:
+        match agent.connection.unique_id % 5:
+            case 0:
+                portrayal["Color"] = "black"
+            case 1:
+                portrayal["Color"] = "green"
+            case 2:
+                portrayal["Color"] = "blue"
+            case 3:
+                portrayal["Color"] = "purple"
+            case 4:
+                portrayal["Color"] = "yellow"
+            case _:
+                portrayal["Color"] = "black"
         portrayal["Shape"] = "circle"
-        portrayal["Filled"] = "true"
-        portrayal["Color"] = "blue"
+        portrayal["Filled"] = "false"
+        # portrayal["Color"] = "blue"
 
     if type(agent) == Battery:
         portrayal["Shape"] = "circle"
@@ -17,9 +30,24 @@ def agent_portrayal(agent):
         portrayal["Color"] = "red"
 
     if type(agent) == Cable:
+        match agent.battery_id % 5:
+            case 0:
+                portrayal["Color"] = "black"
+            case 1:
+                portrayal["Color"] = "green"
+            case 2:
+                portrayal["Color"] = "blue"
+            case 3:
+                portrayal["Color"] = "purple"
+            case 4:
+                portrayal["Color"] = "yellow"
+            case _:
+                portrayal["Color"] = "black"
+        
+        portrayal["r"] = 0.5
         portrayal["Shape"] = "circle"
         portrayal["Filled"] = "true"
-        portrayal["Color"] = "black"
+        # portrayal["Color"] = "black"
         portrayal["Layer"] = 0
 
     return portrayal
