@@ -1,5 +1,8 @@
 import mesa
-from smartgrid import House, Battery, Cable, SmartGrid
+from smartgrid2 import SmartGrid
+from Agents.house import House
+from Agents.cable import Cable
+from Agents.battery import Battery
 
 
 def agent_portrayal(agent):

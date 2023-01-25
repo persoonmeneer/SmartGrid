@@ -1,5 +1,3 @@
-# Thomas, Karel, Joris
-
 from __future__ import annotations
 import mesa
 from typing import Union, Optional
@@ -44,12 +42,11 @@ class SmartGrid(mesa.Model):
         
         # get representation info
         self.get_information()
-        # print(self.information)
+        
 
     def bound(self) -> tuple[int, int]:
         """
         This function generates the boundaries of the grid
-
         Returns:
             tuple[int, int]: the maximum x and y values for the grid
         """
@@ -81,7 +78,7 @@ class SmartGrid(mesa.Model):
             dist_batteries.sort()
 
             # assign priority value to house
-            house.priority = dist_batteries[1] - dist_batteries[0]
+            house.priority = dist_batteries[4] - dist_batteries[0]
 
         # sort houses based on priority
         self.houses.sort(key=lambda x: x.priority, reverse=True)
@@ -110,15 +107,15 @@ class SmartGrid(mesa.Model):
                 # if the first battery, make it the smallest distance and connect
                 if min_dist == -1 and house.check_connection(battery):
                     min_dist = dist
-                    house.connect(battery)
                     best_index = index
                 # if distance to new battery is smaller than minimum, update
                 elif min_dist > dist and house.check_connection(battery):
                     min_dist = dist
-                    house.connect(battery)
                     best_index = index
                     
                 index += 1
+                
+            house.connect(self.batteries[best_index])
                 
             self.batteries[best_index].houses.append(house)
                     
@@ -136,82 +133,48 @@ class SmartGrid(mesa.Model):
             cable_list = []
 
             # x and y coordinate of the connected battery
-            battery = house.connection
+            to_x, to_y = house.connection.x, house.connection.y
 
             # order the x and y values s.t. the cables can be laid
-            small_x, big_x = min([house.x, battery.x]), max([house.x, battery.x])
-            small_y, big_y = min([house.y, battery.y]), max([house.y, battery.y])
+            small_x, small_y = min([house.x, to_x]), min([house.y, to_y])
+            big_x, big_y = max([house.x, to_x]), max([house.y, to_y])
 
-            if house.y < battery.y:
-                from_y, from_x = house.y, house.x
-                to_x, to_y = battery.x, battery.y
-            else:
-                from_y, from_x = battery.y, battery.x
-                to_x, to_y = house.x, house.y
+            # place cables in the x range for the house's y value
+            for loc in range(small_x, big_x + 1):
+                # create cable at given location and add to list
+                new_cable = Cable(cable_id, self, loc, house.y, 0)
+                cable_list.append(new_cable)
 
-            i = 0
+                # update number of cables
+                self.num_cables += 1
 
-    	    
-            battery_block = True
-            break_out_flag = False
+                # place cable in the grid
+                self.grid.place_agent(new_cable, (loc, house.y))
 
-            while battery_block == True:
-                # no battery block found yet
-                battery_block = False
-                
-                # make the path
-                y1 = [(from_x, from_y + j) for j in range(i + 1)]
-                x1 = [(j, from_y + i) for j in range(small_x, big_x + 1)]
-                x2 = [(to_x, j) for j in range(from_y + i, to_y)]
-                # remove the house and battery location
-                if i > 0:
-                    y1.pop(0)
-                
-                if len(x2) > 0:
-                    x2.pop()
-
-                # merge locations in one list
-                cor_arr = y1 + x1 + x2
-                # get all contents of the grid of the locations
-                content = self.grid.get_cell_list_contents(cor_arr)
-                
-                # check if not destination battery
-                if any(isinstance(x, Battery) for x in content):
-                        battery_block = True
-                        i += 1
-
-            for y in range(from_y, from_y + i):
-                # add cable to the given house
-                self.addCable(small_x, y, house, cable_id)
                 # update cable id
                 cable_id += 1
 
-            for x in range(small_x, big_x + 1):
-                # add cable to the given house
-                self.addCable(x, small_y + i, house, cable_id)
-                # update cable id
+            # place cables in the y range for the batteries' x value
+            for loc in range(small_y, big_y + 1):
+                # create cable at given location and add to list
+                new_cable = Cable(cable_id, self, to_x, loc, 0)
+                cable_list.append(new_cable)
+
+                # update number of cables
+                self.num_cables += 1
+
+                # place cable in the grid
+                self.grid.place_agent(new_cable, (to_x, loc))
+ 
+                #  update cable id
                 cable_id += 1
 
-            for y in range(from_y + i, to_y + 1):
-                # add cable to the given house
-                self.addCable(to_x, y, house, cable_id)
-                # update cable id
-                cable_id += 1
-            
-    def addCable(self, x, y, house, cable_id):
-        new_cable = Cable(cable_id, self, x, y)
-        house.addCable(new_cable)
-
-        # update number of cables
-        self.num_cables += 1
-
-        # place cable in the grid
-        self.grid.place_agent(new_cable, (x, y))
+            # assign cable list to the house
+            house.cables = cable_list
 
     def costs(self) -> int:
         """
         This function calculates the total costs for the cables and batteries
-
         Returns:
             int: total costs
         """
@@ -262,11 +225,9 @@ class SmartGrid(mesa.Model):
     def add_objects(self, district: int, info: str) ->Union[list[House], list[Battery]]:
         """
         Add houses or battery list of district depending on 'info'
-
         Args:
             district (int): district number
             info (str): 'houses' or 'batteries'
-
         Returns:
             Union[list[House], list[Battery]]: a list with all the houses or batteries
         """
@@ -326,5 +287,3 @@ if __name__ == "__main__":
     print(test_wijk_3.costs())
     with open("district3.json", "w") as outfile:
         json.dump(test_wijk_3.information, outfile)
-    
-    
