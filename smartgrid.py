@@ -179,12 +179,8 @@ class SmartGrid(mesa.Model):
 
                 # get all contents of the grid of the locations
                 content = self.grid.get_cell_list_contents(cor_arr)
-
-                print(cor_arr)
                 
                 # check if not destination battery
-                
-
                 for bat in self.batteries:
                     if bat in content and not (bat.x == battery.x and bat.y == battery.y):
                         battery_block = True
@@ -216,7 +212,7 @@ class SmartGrid(mesa.Model):
             #     cable_id += 1
             
     def addCable(self, x, y, house, cable_id):
-        new_cable = Cable(cable_id, self, x, y)
+        new_cable = Cable(cable_id, self, x, y, 0)
         house.addCable(new_cable)
 
         # update number of cables
