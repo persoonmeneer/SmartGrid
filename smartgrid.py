@@ -6,6 +6,9 @@ from operator import attrgetter
 from Agents.cable import Cable
 from Agents.house import House
 from Agents.battery import Battery
+from distribute import distribute
+import numpy as np
+import pandas as pd
 import json
         
 
@@ -39,8 +42,7 @@ class SmartGrid(mesa.Model):
         # add cables to grid
         self.link_houses()
         self.lay_cable()
-        
-        # get representation info
+
         self.get_information()
         
 
@@ -85,39 +87,49 @@ class SmartGrid(mesa.Model):
 
     def link_houses(self) -> None:
         """
-        This function finds the two closest batteries with enough capacity
-        for every house and assigns the house to that battery
+        This function assigns each house to a battery
         """
-
+        # all placed houses
+        houses_placed = []
+       
         # find closest battery for every house
         for house in self.houses:
             # smallest distance to a battery
             min_dist = -1.0
-            
-            # index battery
-            index = 0
-            
-            # best battery index for the house
-            best_index = 0
-            
+          
+            # boolean to check if the house can connect to a battery
+            battery_found = False
+          
+            # check for all batteries
             for battery in self.batteries:
                 # distance to battery
                 dist = house.distance(battery)
-
-                # if the first battery, make it the smallest distance and connect
+                # if a connection can be made, remember that
                 if min_dist == -1 and house.check_connection(battery):
                     min_dist = dist
-                    best_index = index
+                    best_battery = battery
+                    battery_found = True
                 # if distance to new battery is smaller than minimum, update
                 elif min_dist > dist and house.check_connection(battery):
                     min_dist = dist
-                    best_index = index
-                    
-                index += 1
-                
-            house.connect(self.batteries[best_index])
-                
-            self.batteries[best_index].houses.append(house)
+                    best_battery = battery
+                    battery_found = True
+           
+            # remove house of houses not placed if a battery to connect to
+            # is found
+            if battery_found:
+                # add house to battery and copy all the paths in battery
+                best_battery.add_house(house)
+                best_battery.copy_all_paths()
+           
+                houses_placed.append(house)
+       
+        # get all the houses which are not placed
+        self.houses_not_placed = [house for house in self.houses if house not in houses_placed]
+        
+        
+        if len(self.houses_not_placed) > 0:
+            distribute(self.batteries, self.houses_not_placed)
                     
     def lay_cable(self) -> None:
         """
@@ -126,51 +138,45 @@ class SmartGrid(mesa.Model):
 
         # unique id for cables
         cable_id = 1000
-
+        
         # create and place the cables for every house
         for house in self.houses:
-            # cable list per house
-            cable_list = []
-
             # x and y coordinate of the connected battery
-            to_x, to_y = house.connection.x, house.connection.y
-
-            # order the x and y values s.t. the cables can be laid
-            small_x, small_y = min([house.x, to_x]), min([house.y, to_y])
-            big_x, big_y = max([house.x, to_x]), max([house.y, to_y])
-
-            # place cables in the x range for the house's y value
-            for loc in range(small_x, big_x + 1):
-                # create cable at given location and add to list
-                new_cable = Cable(cable_id, self, loc, house.y, 0)
-                cable_list.append(new_cable)
-
-                # update number of cables
-                self.num_cables += 1
-
-                # place cable in the grid
-                self.grid.place_agent(new_cable, (loc, house.y))
-
-                # update cable id
+            battery = house.connection
+                
+            if battery.x >= house.x and battery.y <= house.y:
+                horizontal = [(i, house.y) for i in range(house.x, battery.x + 1, 1)]
+                vertical = [(battery.x, i) for i in np.arange(house.y, battery.y - 1, -1)]
+            elif battery.x >= house.x and battery.y >= house.y:
+                horizontal = [(i, house.y) for i in range(house.x, battery.x + 1, 1)]
+                vertical = [(battery.x, i) for i in range(house.y, battery.y + 1, 1)]
+            elif battery.x <= house.x and battery.y >= house.y:   
+                horizontal = [(i, house.y) for i in np.arange(house.x, battery.x - 1, -1)] 
+                vertical = [(battery.x, i) for i in range(house.y, battery.y + 1, 1)]
+            elif battery.x <= house.x and battery.y <= house.y:
+                horizontal = [(i, house.y) for i in np.arange(house.x, battery.x - 1, -1)] 
+                vertical = [(battery.x, i) for i in np.arange(house.y, battery.y - 1, -1)]
+            
+            path = horizontal + vertical
+            
+            # remove the dublicate coordinates at turns
+            path = pd.unique(path).tolist()
+                          
+            for space in path:
+                # add cable to the house
+                self.addCable(space[0], space[1], house, cable_id)
                 cable_id += 1
+                
+    def addCable(self, x, y, house, cable_id):
+        new_cable = Cable(cable_id, self, x, y, house.connection.unique_id)
+        new_cable.battery_connection = house.connection
+        house.add_cable(new_cable)
 
-            # place cables in the y range for the batteries' x value
-            for loc in range(small_y, big_y + 1):
-                # create cable at given location and add to list
-                new_cable = Cable(cable_id, self, to_x, loc, 0)
-                cable_list.append(new_cable)
+        # update number of cables
+        self.num_cables += 1
 
-                # update number of cables
-                self.num_cables += 1
-
-                # place cable in the grid
-                self.grid.place_agent(new_cable, (to_x, loc))
- 
-                #  update cable id
-                cable_id += 1
-
-            # assign cable list to the house
-            house.cables = cable_list
+        # place cable in the grid
+        self.grid.place_agent(new_cable, (x, y))
 
     def costs(self) -> int:
         """
@@ -278,12 +284,12 @@ if __name__ == "__main__":
     with open("district1.json", "w") as outfile:
         json.dump(test_wijk_1.information, outfile)
 
-    test_wijk_2 = SmartGrid(2)
-    print(test_wijk_2.costs())
-    with open("district2.json", "w") as outfile:
-        json.dump(test_wijk_2.information, outfile)
+    # test_wijk_2 = SmartGrid(2)
+    # print(test_wijk_2.costs())
+    # with open("district2.json", "w") as outfile:
+    #     json.dump(test_wijk_2.information, outfile)
 
-    test_wijk_3 = SmartGrid(3)
-    print(test_wijk_3.costs())
-    with open("district3.json", "w") as outfile:
-        json.dump(test_wijk_3.information, outfile)
+    # test_wijk_3 = SmartGrid(3)
+    # print(test_wijk_3.costs())
+    # with open("district3.json", "w") as outfile:
+    #     json.dump(test_wijk_3.information, outfile)

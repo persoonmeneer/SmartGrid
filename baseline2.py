@@ -124,59 +124,29 @@ class SmartGrid(mesa.Model):
                     destination = 0
 
             destination = self.batteries[destination]
-            house.connect(destination)
+            destination.add_house(house)
 
             # x and y coordinate of the connected battery
             battery = house.connection
 
-            j = 0
-            vert1 = []
+            if battery.x >= house.x and battery.y <= house.y:
+                horizontal = [(i, house.y) for i in range(house.x, battery.x + 1, 1)]
+                vertical = [(battery.x, int(i)) for i in np.arange(house.y, battery.y - 1, -1)]
+            elif battery.x >= house.x and battery.y >= house.y:
+                horizontal = [(i, house.y) for i in range(house.x, battery.x + 1, 1)]
+                vertical = [(battery.x, i) for i in range(house.y, battery.y + 1, 1)]
+            elif battery.x <= house.x and battery.y >= house.y:   
+                horizontal = [(int(i), house.y) for i in np.arange(house.x, battery.x - 1, -1)] 
+                vertical = [(battery.x, i) for i in range(house.y, battery.y + 1, 1)]
+            elif battery.x <= house.x and battery.y <= house.y:
+                horizontal = [(int(i), house.y) for i in np.arange(house.x, battery.x - 1, -1)] 
+                vertical = [(battery.x, int(i)) for i in np.arange(house.y, battery.y - 1, -1)]
             
-            battery_block = True
+            path = horizontal + vertical
             
-            while battery_block == True:
-                battery_block = False
+            # remove the dublicate coordinates at turns
+            path = pd.unique(path).tolist()
                 
-                if battery.x >= house.x and battery.y <= house.y:
-                    if j >= 0:
-                        vert1 = [(house.x, int(i)) for i in np.arange(house.y, house.y - j - 1, -1)]
-
-                    horizontal = [(i, house.y - j) for i in range(house.x, battery.x + 1, 1)]
-                    vertical = [(battery.x, int(i)) for i in np.arange(house.y - j, battery.y - 1, -1)]
-                elif battery.x >= house.x and battery.y >= house.y:
-                    if j >= 0:
-                        vert1 = [(house.x, i) for i in range(house.y, house.y + j + 1, 1)]
-                    
-                    horizontal = [(i, house.y + j) for i in range(house.x, battery.x + 1, 1)]
-                    vertical = [(battery.x, i) for i in range(house.y + j, battery.y + 1, 1)]
-                elif battery.x <= house.x and battery.y >= house.y:
-                    if j >= 0:
-                        vert1 = [(house.x, i) for i in range(house.y, house.y + j + 1, 1)]
-                        
-                    horizontal = [(int(i), house.y + j) for i in np.arange(house.x, battery.x - 1, -1)] 
-                    vertical = [(battery.x, i) for i in range(house.y + j, battery.y + 1, 1)]
-                elif battery.x <= house.x and battery.y <= house.y:
-                    if j >= 0:
-                        vert1 = [(house.x, int(i)) for i in np.arange(house.y, house.y - j - 1, -1)]
-                    horizontal = [(int(i), house.y - j) for i in np.arange(house.x, battery.x - 1, -1)] 
-                    vertical = [(battery.x, int(i)) for i in np.arange(house.y - j, battery.y - 1, -1)]
-                
-                path = vert1 + horizontal + vertical
-                
-                # remove the dublicate coordinates at turns
-                path = pd.unique(path).tolist()
-                
-                coord_batteries = []
-                for bat in self.batteries:
-                    add = (bat.x, bat.y)
-                    
-                    coord_batteries.append(add)                    
-                
-                for coord in coord_batteries:
-                    if coord in path[:-1]:
-                        battery_block = True
-                        j += 1
-                        break 
                      
             break_loop = False
             first = True
@@ -203,7 +173,7 @@ class SmartGrid(mesa.Model):
                 first = False
 
     def addCable(self, x, y, house, cable_id):
-        new_cable = Cable(cable_id, self, x, y)
+        new_cable = Cable(cable_id, self, x, y, house.connection.unique_id)
         new_cable.battery_connection = house.connection
         house.addCable(new_cable)
 
@@ -227,7 +197,7 @@ if __name__ == "__main__":
     results = []
     fails = 0
     
-    runs = 10000
+    runs = 100
     for i in range(runs):
         mesa_wijk_1 = SmartGrid(1)
         if mesa_wijk_1.costs() != None:
