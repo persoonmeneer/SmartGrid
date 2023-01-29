@@ -1,7 +1,6 @@
 # Thomas, Karel, Joris
 
 from __future__ import annotations
-import mesa
 import random
 from Agents.cable import Cable
 from Agents.house import House
@@ -12,7 +11,7 @@ import matplotlib.pyplot as plt
 import copy
 import pandas as pd
 import numpy as np
-
+import mesa
 
 class SmartGrid(mesa.Model):
     def __init__(self, district: int) -> None:
@@ -125,34 +124,52 @@ class SmartGrid(mesa.Model):
 
             destination = self.batteries[destination]
             destination.add_house(house)
-            
 
             # x and y coordinate of the connected battery
             battery = house.connection
 
-                
             if battery.x >= house.x and battery.y <= house.y:
                 horizontal = [(i, house.y) for i in range(house.x, battery.x + 1, 1)]
-                vertical = [(battery.x, i) for i in np.arange(house.y, battery.y - 1, -1)]
+                vertical = [(battery.x, int(i)) for i in np.arange(house.y, battery.y - 1, -1)]
             elif battery.x >= house.x and battery.y >= house.y:
                 horizontal = [(i, house.y) for i in range(house.x, battery.x + 1, 1)]
                 vertical = [(battery.x, i) for i in range(house.y, battery.y + 1, 1)]
             elif battery.x <= house.x and battery.y >= house.y:   
-                horizontal = [(i, house.y) for i in np.arange(house.x, battery.x - 1, -1)] 
+                horizontal = [(int(i), house.y) for i in np.arange(house.x, battery.x - 1, -1)] 
                 vertical = [(battery.x, i) for i in range(house.y, battery.y + 1, 1)]
             elif battery.x <= house.x and battery.y <= house.y:
-                horizontal = [(i, house.y) for i in np.arange(house.x, battery.x - 1, -1)] 
-                vertical = [(battery.x, i) for i in np.arange(house.y, battery.y - 1, -1)]
+                horizontal = [(int(i), house.y) for i in np.arange(house.x, battery.x - 1, -1)] 
+                vertical = [(battery.x, int(i)) for i in np.arange(house.y, battery.y - 1, -1)]
             
             path = horizontal + vertical
             
             # remove the dublicate coordinates at turns
             path = pd.unique(path).tolist()
-                          
+                
+                     
+            break_loop = False
+            first = True
             for space in path:
+                if not first:
+                    # check if there already is a cable going to the battery
+                    items = self.grid[space[0]][space[1]]
+                    
+                    if len(items) >= 1:
+                        for item in items:
+                            # if there is a cable going to the same battery already stop
+                            if isinstance(item, Cable):
+                                if item.battery_connection == house.connection:
+                                    break_loop = True
+                                    break
+                        
+                        if break_loop == True:
+                            break
+                
                 # add cable to the house
                 self.addCable(space[0], space[1], house, cable_id)
                 cable_id += 1
+                
+                first = False
 
     def addCable(self, x: int, y: int, house: House, cable_id: int) -> None:
         new_cable = Cable(cable_id, self, x, y, house.connection.unique_id)
@@ -165,14 +182,13 @@ class SmartGrid(mesa.Model):
         # place cable in the grid
         self.grid.place_agent(new_cable, (x, y))
         
-    def costs(self) -> Optional[int]:
+    def costs(self) -> None:
         if self.success == False:
             return None
         
         cable_cost = self.num_cables * 9
         battery_cost = 5000 * len(self.batteries)
         self.costs_grid = cable_cost + battery_cost
-        
         return self.costs_grid
     
 
@@ -182,9 +198,9 @@ if __name__ == "__main__":
     
     runs = 1000
     for i in range(runs):
-        test_wijk_1 = SmartGrid(1)
-        if test_wijk_1.costs() != None:
-            results.append(test_wijk_1.costs())
+        mesa_wijk_1 = SmartGrid(1)
+        if mesa_wijk_1.costs() != None:
+            results.append(mesa_wijk_1.costs())
         else:
             fails += 1
     
@@ -197,4 +213,4 @@ if __name__ == "__main__":
     results.append(perc_fails)
     
     df = pd.DataFrame(results, columns = ["Costs"])
-    df.to_csv("baseline_data.csv")
+    df.to_csv("baseline2_data.csv")
