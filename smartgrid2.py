@@ -30,8 +30,8 @@ class SmartGrid(mesa.Model):
         # list of not connected houses
         self.houses_not_placed: list[House] = []
  
-        # total numher of cable
-        self.num_cables = 0
+        # # total numher of cable
+        # self.num_cables = 0
  
         # create the grid
         self.create_grid()
@@ -49,7 +49,7 @@ class SmartGrid(mesa.Model):
         self.lay_cables(self.batteries)
         
         # optimize connections
-        self.optimization(500)
+        self.optimization(5000)
        
         # get representation info
         self.get_information()   
@@ -92,8 +92,9 @@ class SmartGrid(mesa.Model):
  
         for house in self.houses:
             # list of distances to all the batteries
-            dist_batteries = []
+            dist_batteries: list[int] = []
             
+            # find the distance for all the batteries
             for battery in self.batteries:
                 # add distance to list
                 dist_batteries.append(house.distance(battery))
@@ -104,7 +105,7 @@ class SmartGrid(mesa.Model):
             # assign priority value to house
             house.priority = dist_batteries[4] - dist_batteries[0]
  
-        # sort houses based on priority
+        # * sort houses based on priority
         self.houses.sort(key=lambda x: x.priority, reverse=True)
  
     def link_houses(self) -> None:
@@ -152,6 +153,7 @@ class SmartGrid(mesa.Model):
         # get all the houses which are not placed
         self.houses_not_placed = [house for house in self.houses if house not in houses_placed]
         
+        # * shuffle houses such that unconnected houses are placed
         if len(self.houses_not_placed) > 0:
             distribute(self.batteries, self.houses_not_placed)
 
@@ -161,6 +163,7 @@ class SmartGrid(mesa.Model):
         batteries
         """
         
+        #
         self.num_cables = 0
         
         for battery in battery_list:
