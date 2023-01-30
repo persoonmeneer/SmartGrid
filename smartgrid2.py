@@ -46,7 +46,7 @@ class SmartGrid(mesa.Model):
         self.lay_cables(self.batteries)
         
         # optimize connections
-        self.optimization(5000)
+        self.optimization(500)
        
         # get representation info
         self.get_information()   

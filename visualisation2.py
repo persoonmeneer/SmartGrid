@@ -4,6 +4,7 @@ from Agents.house import House
 from Agents.cable import Cable
 from Agents.battery import Battery
 import pandas as pd
+import matplotlib.pyplot as plt
 
 
 def agent_portrayal(agent):
@@ -57,7 +58,10 @@ def agent_portrayal(agent):
 
 def plot_annealing():
     data = pd.read_csv("simulated_annealing_data.csv")
-    print(data)
+    
+    plt.plot(list(range(len(data))), data.Costs)
+    plt.show()
+    print(data.Costs)
         
 
 if __name__ == "__main__":
@@ -66,8 +70,11 @@ if __name__ == "__main__":
     server = mesa.visualization.ModularServer(
     SmartGrid, [grid], "Smart Grid", {"district": 1}
     )
-    server.port = 8521 # The default
-    server.launch()
     
     # ! uncomment in case of visualizing simulated annealing data
     plot_annealing()
+    
+    server.port = 8521 # The default
+    server.launch()
+    
+    
