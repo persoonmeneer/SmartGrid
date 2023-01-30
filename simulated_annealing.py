@@ -68,9 +68,9 @@ def optimization(smartgrid, iteration: int) -> None:
             
         if new_costs < old_costs or random.random() <= acc_prob:
             smartgrid.copy_optimize()
-            # empty_model = changed_empty_model
-            
-        smartgrid.copied_model = empty_model
+            smartgrid.copied_model = changed_empty_model
+        else:  
+            smartgrid.copied_model = empty_model
     
     # make the smartgrid the best selection of the iterated models
     smartgrid.copied_model = best_model

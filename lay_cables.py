@@ -1,8 +1,9 @@
 from Agents.battery import Battery
+from typing import Tuple, List
 import pandas as pd
 import copy
 
-def dist_points(point_1: tuple[int, int], point_2: tuple[int, int]) -> int:
+def dist_points(point_1: Tuple[int, int], point_2: Tuple[int, int]) -> int:
     """
     This function calculates the Manhattan distance between 2 points
 
@@ -16,8 +17,8 @@ def dist_points(point_1: tuple[int, int], point_2: tuple[int, int]) -> int:
     
     return abs(point_1[0] - point_2[0]) + abs(point_1[1] - point_2[1])
 
-def dist_paths(path_1: list[tuple[int, int]],
-               path_2: list[tuple[int, int]]) -> tuple[int, tuple[int, int], tuple[int, int]]:
+def dist_paths(path_1: List[Tuple[int, int]],
+               path_2: List[Tuple[int, int]]) -> Tuple[int, Tuple[int, int], Tuple[int, int]]:
     """
     This function calculates the shortest distance between 2 paths
 
@@ -41,7 +42,7 @@ def dist_paths(path_1: list[tuple[int, int]],
                 
     return min_dist, best_point_1, best_point_2
 
-def min_dist_paths(path: list[tuple[int, int]], battery: Battery) -> int:
+def min_dist_paths(path: List[Tuple[int, int]], battery: Battery) -> int:
     """
     This function calculates the shortest distance between a path
     and the path in battery
@@ -69,8 +70,8 @@ def min_dist_paths(path: list[tuple[int, int]], battery: Battery) -> int:
 
     return min_dist
       
-def get_path(point_1: tuple[int, int],
-             point_2: tuple[int, int], info: bool) -> list[tuple[int, int]]:
+def get_path(point_1: Tuple[int, int],
+             point_2: Tuple[int, int], info: bool) -> List[Tuple[int, int]]:
     """
     This function creates a path hor-ver or ver-hor depending on info
 
@@ -97,8 +98,8 @@ def get_path(point_1: tuple[int, int],
     vertical = [(point_2[0], i) for i in range(small_y, big_y + 1)]
     return list(pd.unique(vertical + horizonal))
 
-def get_best_path(point_1: tuple[int, int], point_2: tuple[int, int],
-                  battery: Battery) -> list[tuple[int, int]]:
+def get_best_path(point_1: Tuple[int, int], point_2: Tuple[int, int],
+                  battery: Battery) -> List[Tuple[int, int]]:
     """
     This function 
 
@@ -130,7 +131,7 @@ def get_best_path(point_1: tuple[int, int], point_2: tuple[int, int],
     return path_2
 
 def merge_paths(battery: Battery, index_1: int, index_2: int,
-                path: list[tuple[int, int]]) -> None:
+                path: List[Tuple[int, int]]) -> None:
     
     # combine both paths and remove duplicates
     battery.all_paths[index_2] += battery.all_paths[index_1] + path

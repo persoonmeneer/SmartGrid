@@ -2,7 +2,7 @@
  
 from __future__ import annotations
 import mesa
-from typing import Union, Optional, Any
+from typing import Union, Optional, Any, Tuple, List
 import csv
 from operator import attrgetter
 from Agents.battery import Battery
@@ -54,7 +54,7 @@ class SmartGrid(mesa.Model):
         # get representation info
         self.get_information()   
  
-    def bound(self) -> tuple[int, int]:
+    def bound(self) -> Tuple[int, int]:
         """
         This function generates the boundaries of the grid
  
@@ -155,7 +155,7 @@ class SmartGrid(mesa.Model):
         if len(self.houses_not_placed) > 0:
             distribute(self.batteries, self.houses_not_placed)
 
-    def lay_cables(self, battery_list: list[Battery]) -> None:
+    def lay_cables(self, battery_list: List[Battery]) -> None:
         """
         This functions places the cables to connect all houses to the
         batteries
@@ -240,7 +240,7 @@ class SmartGrid(mesa.Model):
             # add all information to self.information
             self.information.append(dct)
        
-    def add_objects(self, district: int, info: str) -> Union[list[House], list[Battery]]:
+    def add_objects(self, district: int, info: str) -> Union[List[House], List[Battery]]:
         """
         Add houses or battery list of district depending on 'info'
  
