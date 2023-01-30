@@ -5,6 +5,8 @@ This python file does simulated annealing with the geometric rule
 import copy
 import random
 from math import exp
+import csv
+import pandas as pd
 
 def optimization(smartgrid, iteration: int) -> None:
     """
@@ -17,8 +19,11 @@ def optimization(smartgrid, iteration: int) -> None:
     
     # initialise acceptance probability, minimum costs and best model
     acc_prob = 1
-    min_costs = 40_000
+    min_costs = smartgrid.costs()
     best_model = copy.deepcopy(smartgrid)
+    
+    # list with the cost for each accepted iteration
+    results: list[int] = [min_costs]
     
     # optimize for iteration number of iterations
     for i in range(iteration):
@@ -67,11 +72,20 @@ def optimization(smartgrid, iteration: int) -> None:
             min_costs = new_costs
             
         if new_costs < old_costs or random.random() <= acc_prob:
+            results.append(new_costs)
             smartgrid.copy_optimize()
+            
+            # ! uncomment in case of finding simulated annealing data
             smartgrid.copied_model = changed_empty_model
-        else:  
-            smartgrid.copied_model = empty_model
+            continue
+        
+        # ! uncomment in case of finding simulated annealing data
+        smartgrid.copied_model = empty_model
     
     # make the smartgrid the best selection of the iterated models
     smartgrid.copied_model = best_model
     smartgrid.copy_optimize()
+
+    # ! uncomment in case of finding simulated annealing data
+    df = pd.DataFrame(results, columns = ["Costs"])
+    df.to_csv("simulated_annealing_data.csv")
