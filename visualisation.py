@@ -1,5 +1,5 @@
 import mesa
-from smartgrid2 import SmartGrid
+from smartgrid import SmartGrid
 from Agents.house import House
 from Agents.cable import Cable
 from Agents.battery import Battery

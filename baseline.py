@@ -15,7 +15,7 @@ import numpy as np
 
 
 class SmartGrid(mesa.Model):
-    def __init__(self, district):
+    def __init__(self, district: int) -> None:
         self.houses = self.add_objects(district, 'houses')
         self.batteries = self.add_objects(district, 'batteries')
         self.objects = self.houses + self.batteries
@@ -38,7 +38,7 @@ class SmartGrid(mesa.Model):
         self.lay_cable_random()
 
 
-    def bound(self):
+    def bound(self) -> None:
         x = 0
         y = 0
 
@@ -102,7 +102,7 @@ class SmartGrid(mesa.Model):
 
         return lst
 
-    def lay_cable_random(self):
+    def lay_cable_random(self) -> None:
         cable_id = 1000
         
         random.shuffle(self.houses)
@@ -154,10 +154,10 @@ class SmartGrid(mesa.Model):
                 self.addCable(space[0], space[1], house, cable_id)
                 cable_id += 1
 
-    def addCable(self, x, y, house, cable_id):
+    def addCable(self, x: int, y: int, house: House, cable_id: int) -> None:
         new_cable = Cable(cable_id, self, x, y, house.connection.unique_id)
         new_cable.battery_connection = house.connection
-        house.addCable(new_cable)
+        house.add_cable(new_cable)
 
         # update number of cables
         self.num_cables += 1
@@ -165,13 +165,14 @@ class SmartGrid(mesa.Model):
         # place cable in the grid
         self.grid.place_agent(new_cable, (x, y))
         
-    def costs(self):
+    def costs(self) -> Optional[int]:
         if self.success == False:
             return None
         
         cable_cost = self.num_cables * 9
         battery_cost = 5000 * len(self.batteries)
         self.costs_grid = cable_cost + battery_cost
+        
         return self.costs_grid
     
 
@@ -179,7 +180,7 @@ if __name__ == "__main__":
     results = []
     fails = 0
     
-    runs = 100
+    runs = 1000
     for i in range(runs):
         test_wijk_1 = SmartGrid(1)
         if test_wijk_1.costs() != None:
