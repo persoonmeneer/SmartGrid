@@ -8,6 +8,7 @@ from operator import attrgetter
 from Agents.cable import Cable
 from Agents.house import House
 from Agents.battery import Battery
+from distribute import distribute
 import json
         
 
@@ -68,56 +69,69 @@ class SmartGrid(mesa.Model):
         This function finds the order in which the houses get
         their battery assigned and sort the house list
         """
-
+ 
         for house in self.houses:
             # list of distances to all the batteries
             dist_batteries = []
+            
             for battery in self.batteries:
                 # add distance to list
                 dist_batteries.append(house.distance(battery))
-
+ 
             # sort the list in ascending order
             dist_batteries.sort()
-
+ 
             # assign priority value to house
-            house.priority = dist_batteries[1] - dist_batteries[0]
-
+            house.priority = dist_batteries[4] - dist_batteries[0]
+ 
         # sort houses based on priority
         self.houses.sort(key=lambda x: x.priority, reverse=True)
 
     def link_houses(self) -> None:
         """
-        This function finds the two closest batteries with enough capacity
-        for every house and assigns the house to that battery
+        This function links and connects each house to an available battery.
         """
-
+ 
+        # all placed houses
+        houses_placed = []
+        
         # find closest battery for every house
         for house in self.houses:
             # smallest distance to a battery
             min_dist = -1.0
-            
-            # index battery
-            index = 0
-            
-            # best battery index for the house
-            best_index = 0
-            
+           
+            # boolean to check if the house can connect to a battery
+            battery_found = False
+           
+            # check for all batteries
             for battery in self.batteries:
                 # distance to battery
                 dist = house.distance(battery)
-
-                # if the first battery, make it the smallest distance and connect
+ 
+                # if a connection can be made, remember that
                 if min_dist == -1 and house.check_connection(battery):
                     min_dist = dist
-                    best_index = index
+                    best_battery = battery
+                    battery_found = True
                 # if distance to new battery is smaller than minimum, update
                 elif min_dist > dist and house.check_connection(battery):
                     min_dist = dist
-                    best_index = index
-                    
-                index += 1
-            house.connect(self.batteries[best_index])
-            self.batteries[best_index].houses.append(house)
+                    best_battery = battery
+                    battery_found = True
+            
+            # If battery found connect house to best battery
+            if battery_found:
+                # add house to battery and copy all the paths in battery
+                best_battery.add_house(house)
+                best_battery.copy_all_paths()
+            
+                houses_placed.append(house)
+        
+        # get all the houses which are not placed
+        houses_not_placed = [house for house in self.houses if house not in houses_placed]
+        
+        if len(houses_not_placed) > 0:
+            distribute(self.batteries, houses_not_placed)
                     
     def lay_cable(self) -> None:
         """
