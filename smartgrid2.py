@@ -30,9 +30,6 @@ class SmartGrid(mesa.Model):
         # list of not connected houses
         self.houses_not_placed: list[House] = []
  
-        # # total numher of cable
-        # self.num_cables = 0
- 
         # create the grid
         self.create_grid()
  
@@ -163,10 +160,12 @@ class SmartGrid(mesa.Model):
         batteries
         """
         
-        #
+        # * initiate global variable for the number of cables
         self.num_cables = 0
         
+        # places all cables for all the houses on the batteries
         for battery in battery_list:
+            # keep mergen paths until 1 remains
             while battery.get_len_paths() > 1:
                 create_merged_path(battery)
             
@@ -176,7 +175,7 @@ class SmartGrid(mesa.Model):
     def copy_optimize(self) -> None:
         """
         This function replaces self attributes with 
-        copied_model attributes
+        copied_model attributes when called
         """
         
         self.houses = self.copied_model.houses

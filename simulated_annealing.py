@@ -70,7 +70,6 @@ def optimization(smartgrid, iteration: int) -> None:
         if new_costs < min_costs:
             best_model = smartgrid.copied_model
             min_costs = new_costs
-            print(new_costs)
             
         if new_costs < old_costs or random.random() <= acc_prob:
             results.append(new_costs)

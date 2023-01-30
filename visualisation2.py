@@ -3,6 +3,7 @@ from smartgrid2 import SmartGrid
 from Agents.house import House
 from Agents.cable import Cable
 from Agents.battery import Battery
+import pandas as pd
 
 
 def agent_portrayal(agent):
@@ -54,6 +55,11 @@ def agent_portrayal(agent):
 
     return portrayal
 
+def plot_annealing():
+    data = pd.read_csv("simulated_annealing_data.csv")
+    print(data)
+        
+
 if __name__ == "__main__":
     grid = mesa.visualization.CanvasGrid(agent_portrayal, 51, 51, 510, 510)
 
@@ -62,3 +68,6 @@ if __name__ == "__main__":
     )
     server.port = 8521 # The default
     server.launch()
+    
+    # ! uncomment in case of visualizing simulated annealing data
+    plot_annealing()
