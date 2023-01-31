@@ -16,10 +16,21 @@ from distribute import distribute
 from place_battery import cluster_funct
   
 class SmartGrid(mesa.Model):
-    def __init__(self, district: int) -> None:
+    def __init__(self, district: int, advanced: bool) -> None:
         # objects
         self.houses: list[House] = self.add_objects(district, 'houses')
-        self.batteries: list[House] = self.add_objects(district, 'batteries')
+        
+        # whether we choose to do the advanced version of the code
+        if advanced:
+            # add own defined batteries
+            self.batteries = cluster_funct(self.houses)
+            
+            # ! change the model to the Smartgrid model
+            for battery in self.batteries:
+                battery.model = self
+        else:
+            self.batteries: list[House] = self.add_objects(district, 'batteries')
+            
         self.cables: list[Cable] = []
         
         # the district which is chosen
@@ -30,8 +41,6 @@ class SmartGrid(mesa.Model):
  
         # create the grid
         self.create_grid()
- 
-        cluster_funct(self.houses)
         
         # order placement
         self.placement_order()
@@ -46,7 +55,7 @@ class SmartGrid(mesa.Model):
         self.lay_cables(self.batteries)
         
         # optimize connections
-        self.optimization(500)
+        self.optimization(50)
        
         # get representation info
         self.get_information()   
@@ -74,10 +83,11 @@ class SmartGrid(mesa.Model):
         self.grid: mesa.space = mesa.space.MultiGrid(width + 1,
                                                      height + 1, False)
         
-        # add houses and batteries to grid
+        # add houses to grid
         for house in self.houses:
             self.grid.place_agent(house, (house.x, house.y))
  
+        # add batteries to grid
         for battery in self.batteries:
             self.grid.place_agent(battery, (battery.x, battery.y))
                 
@@ -200,9 +210,14 @@ class SmartGrid(mesa.Model):
         Returns:
             int: total costs
         """
- 
+
+        # calculate cable costs
         cable_cost = self.num_cables * 9
-        battery_cost = 5000 * len(self.batteries)
+        
+        # calculate battery costs
+        battery_cost = 0
+        for battery in self.batteries:
+            battery_cost += battery.costs
  
         return cable_cost + battery_cost
     
@@ -290,24 +305,24 @@ class SmartGrid(mesa.Model):
                 if info == 'houses':
                     lst.append(House(count, self, x, y, energy))
                 else:
-                    lst.append(Battery(count, self, x, y, energy))
+                    lst.append(Battery(count, self, x, y, energy, 5000))
  
                 count += 1
  
         return lst
  
 if __name__ == "__main__":
-    test_wijk_1 = SmartGrid(1)
+    test_wijk_1 = SmartGrid(1, True)
     print(test_wijk_1.costs())
     with open("district1.json", "w") as outfile:
         json.dump(test_wijk_1.information, outfile)
  
-    test_wijk_2 = SmartGrid(2)
+    test_wijk_2 = SmartGrid(2, True)
     print(test_wijk_2.costs())
     with open("district2.json", "w") as outfile:
         json.dump(test_wijk_2.information, outfile)
  
-    test_wijk_3 = SmartGrid(3)
+    test_wijk_3 = SmartGrid(3, True)
     print(test_wijk_3.costs())
     with open("district3.json", "w") as outfile:
         json.dump(test_wijk_3.information, outfile)
