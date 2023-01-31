@@ -17,7 +17,7 @@ BIG_BAT_DAT: Final = (1800, 1800)
 MID_BAT_DAT: Final = (900, 1350)
 LOW_BAT_DAT: Final = (450, 900)
 
-def check_point_in_df(dataframe: pd.DataFrame, x: int, y: int) -> bool:
+def check_point_in_df(houses_list: list[Battery], x: int, y: int) -> bool:
     """
     This function checks if (x, y) is in the dataframe
 
@@ -30,11 +30,11 @@ def check_point_in_df(dataframe: pd.DataFrame, x: int, y: int) -> bool:
         bool: True if a house is placed at (x, y) else False
     """
     
-    # find data on the centre point
-    df = dataframe[(dataframe.x == x) & (dataframe.y == y)]
+    for house in houses_list:
+        if house.x == x and house.y == y:
+            return True
     
-    # return True if df is empty
-    return df.empty
+    return False
 
 def cluster_funct(houses_list: List[House]) -> List[Battery]:
     """
@@ -104,7 +104,7 @@ def cluster_funct(houses_list: List[House]) -> List[Battery]:
         centre_y = round(filter_data['y'].mean())
         
         # variable which checks if the centre points are in filter_data
-        point_in_df: bool = check_point_in_df(filter_data, centre_x, centre_y)
+        point_in_df: bool = check_point_in_df(houses_list, centre_x, centre_y)
         
         # check surrounding points if that is empty if so, edit centre points
         if point_in_df:
@@ -112,10 +112,10 @@ def cluster_funct(houses_list: List[House]) -> List[Battery]:
             for x in range(centre_x - 1, centre_x + 2):
                 for y in range(centre_y - 1, centre_y + 2):
                     # check centre point
-                    new_point_in_df = check_point_in_df(filter_data, x, y)
+                    new_point_in_df = check_point_in_df(houses_list, x, y)
                     if not new_point_in_df:
                         centre_x, centre_y = x, y
-        
+                        
         # edit cluster output when at last
         if i == unique_clusters[-1]:
             # house and battery energy levels
@@ -128,12 +128,9 @@ def cluster_funct(houses_list: List[House]) -> List[Battery]:
         # create batteries
         if cluster_output > MID_BAT_DAT[0]:
             battery_lst.append(Battery(i, i,centre_x, centre_y, BIG_BAT_DAT[0], BIG_BAT_DAT[1]))
-            continue
         elif cluster_output > LOW_BAT_DAT[0]:
             battery_lst.append(Battery(i, i, centre_x, centre_y, MID_BAT_DAT[0], MID_BAT_DAT[1]))
-            continue
         else:
-            battery_lst.append(Battery(i, i, centre_x, centre_y, LOW_BAT_DAT[0], LOW_BAT_DAT[1]))
-            continue  
+            battery_lst.append(Battery(i, i, centre_x, centre_y, LOW_BAT_DAT[0], LOW_BAT_DAT[1])) 
     
     return battery_lst
