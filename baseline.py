@@ -73,7 +73,8 @@ class SmartGrid(mesa.Model):
 
 
     def add_objects(self, district: int, info: str) -> Union[list[House], list[Battery]]:
-        """Add houses or battery list of district depending on 'info'
+        """
+        Add houses or battery list of district depending on 'info'
 
         Args:
             district (int): district number

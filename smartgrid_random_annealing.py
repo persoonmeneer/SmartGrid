@@ -13,24 +13,13 @@ from lay_cables import *
 import random
 from simulated_annealing import optimization
 from distribute import distribute
-from place_battery import cluster_funct
+import matplotlib.pyplot as plt
   
 class SmartGrid(mesa.Model):
-    def __init__(self, district: int, advanced: bool) -> None:
+    def __init__(self, district: int) -> None:
         # objects
         self.houses: list[House] = self.add_objects(district, 'houses')
-        
-        # whether we choose to do the advanced version of the code
-        if advanced:
-            # add own defined batteries
-            self.batteries = cluster_funct(self.houses)
-            
-            # ! change the model to the Smartgrid model
-            for battery in self.batteries:
-                battery.model = self
-        else:
-            self.batteries: list[House] = self.add_objects(district, 'batteries')
-            
+        self.batteries: list[House] = self.add_objects(district, 'batteries')
         self.cables: list[Cable] = []
         
         # the district which is chosen
@@ -41,10 +30,7 @@ class SmartGrid(mesa.Model):
  
         # create the grid
         self.create_grid()
-        
-        # order placement
-        self.placement_order()
- 
+
         # link houses
         self.link_houses()
         
@@ -55,7 +41,7 @@ class SmartGrid(mesa.Model):
         self.lay_cables(self.batteries)
         
         # optimize connections
-        self.optimization(50)
+        self.optimization(5000)
        
         # get representation info
         self.get_information()   
@@ -83,76 +69,33 @@ class SmartGrid(mesa.Model):
         self.grid: mesa.space = mesa.space.MultiGrid(width + 1,
                                                      height + 1, False)
         
-        # add houses to grid
+        # add houses and batteries to grid
         for house in self.houses:
             self.grid.place_agent(house, (house.x, house.y))
  
-        # add batteries to grid
         for battery in self.batteries:
             self.grid.place_agent(battery, (battery.x, battery.y))
-                
-    def placement_order(self) -> None:
-        """
-        This function finds the order in which the houses get
-        their battery assigned and sort the house list
-        """
- 
-        for house in self.houses:
-            # list of distances to all the batteries
-            dist_batteries: list[int] = []
-            
-            # find the distance for all the batteries
-            for battery in self.batteries:
-                # add distance to list
-                dist_batteries.append(house.distance(battery))
- 
-            # sort the list in ascending order
-            dist_batteries.sort()
- 
-            # assign priority value to house
-            house.priority = dist_batteries[4] - dist_batteries[0]
- 
-        # * sort houses based on priority
-        self.houses.sort(key=lambda x: x.priority, reverse=True)
  
     def link_houses(self) -> None:
         """
-        This function finds the best battery for each house to connect to
-        and connects them.
+        This function finds a random battery for each house and connects them.
+        If it can't connect all houses it tries all over.
         """
- 
-        # all placed houses
-        houses_placed = []
+    
+        random.shuffle(self.houses)
         
-        # find closest battery for every house
+        houses_placed = []
         for house in self.houses:
-            # smallest distance to a battery
-            min_dist = -1.0
-           
-            # boolean to check if the house can connect to a battery
-            battery_found = False
-           
-            # check for all batteries
-            for battery in self.batteries:
-                # distance to battery
-                dist = house.distance(battery)
- 
-                # if a connection can be made, remember that
-                if min_dist == -1 and house.check_connection(battery):
-                    min_dist = dist
-                    best_battery = battery
-                    battery_found = True
-                # if distance to new battery is smaller than minimum, update
-                elif min_dist > dist and house.check_connection(battery):
-                    min_dist = dist
-                    best_battery = battery
-                    battery_found = True
-            
-            # add house to houses_placed if a battery is found
-            if battery_found:
-                # add house to battery and copy all the paths in battery
-                best_battery.add_house(house)
-                houses_placed.append(house)
+            # pick a random battery order as destinations
+            destinations = random.sample(self.batteries, len(self.batteries))
+
+            # check each battery if suitable
+            for destination in destinations:
+                # if the battery has enough space connect and break
+                if house.check_connection(destination):
+                    destination.add_house(house)
+                    houses_placed.append(house)
+                    break
         
         # get all the houses which are not placed
         houses_not_placed = [house for house in self.houses if house not in houses_placed]
@@ -165,6 +108,7 @@ class SmartGrid(mesa.Model):
         for battery in self.batteries:
             battery.copy_all_paths()
 
+        print("*********************************************************************")
     def lay_cables(self, battery_list: List[Battery]) -> None:
         """
         This functions places the cables to connect all houses to the
@@ -209,14 +153,9 @@ class SmartGrid(mesa.Model):
         Returns:
             int: total costs
         """
-
-        # calculate cable costs
+ 
         cable_cost = self.num_cables * 9
-        
-        # calculate battery costs
-        battery_cost = 0
-        for battery in self.batteries:
-            battery_cost += battery.costs
+        battery_cost = 5000 * len(self.batteries)
  
         return cable_cost + battery_cost
     
@@ -304,24 +243,33 @@ class SmartGrid(mesa.Model):
                 if info == 'houses':
                     lst.append(House(count, self, x, y, energy))
                 else:
-                    lst.append(Battery(count, self, x, y, energy, 5000))
+                    lst.append(Battery(count, self, x, y, energy))
  
                 count += 1
  
         return lst
+    
+def plot_annealing():
+    data = pd.read_csv("simulated_annealing_data.csv")
+    
+    plt.plot(list(range(len(data))), data.Costs)
+    plt.show()
+    print(data.Costs)
  
 if __name__ == "__main__":
-    test_wijk_1 = SmartGrid(1, True)
+    test_wijk_1 = SmartGrid(1)
     print(test_wijk_1.costs())
     with open("district1.json", "w") as outfile:
         json.dump(test_wijk_1.information, outfile)
  
-    test_wijk_2 = SmartGrid(2, True)
-    print(test_wijk_2.costs())
-    with open("district2.json", "w") as outfile:
-        json.dump(test_wijk_2.information, outfile)
+    plot_annealing()
+    
+    # test_wijk_2 = SmartGrid(2)
+    # print(test_wijk_2.costs())
+    # with open("district2.json", "w") as outfile:
+    #     json.dump(test_wijk_2.information, outfile)
  
-    test_wijk_3 = SmartGrid(3, True)
-    print(test_wijk_3.costs())
-    with open("district3.json", "w") as outfile:
-        json.dump(test_wijk_3.information, outfile)
+    # test_wijk_3 = SmartGrid(3)
+    # print(test_wijk_3.costs())
+    # with open("district3.json", "w") as outfile:
+    #     json.dump(test_wijk_3.information, outfile)
