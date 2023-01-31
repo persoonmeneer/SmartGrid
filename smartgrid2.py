@@ -26,9 +26,6 @@ class SmartGrid(mesa.Model):
         
         # variable for representation
         self.information: list[dict[str, Any]] = []
-        
-        # list of not connected houses
-        self.houses_not_placed: list[House] = []
  
         # create the grid
         self.create_grid()
@@ -107,8 +104,8 @@ class SmartGrid(mesa.Model):
  
     def link_houses(self) -> None:
         """
-        This function finds the two closest batteries with enough capacity
-        for every house and assigns the house to that battery
+        This function finds the best battery for each house to connect to
+        and connects them.
         """
  
         # all placed houses
@@ -138,19 +135,18 @@ class SmartGrid(mesa.Model):
                     best_battery = battery
                     battery_found = True
             
-            # remove house of houses not placed if a battery to connect to
-            # is found
+            # add house to houses_placed if a battery is found
             if battery_found:
                 # add house to battery and copy all the paths in battery
                 best_battery.add_house(house)
                 houses_placed.append(house)
         
         # get all the houses which are not placed
-        self.houses_not_placed = [house for house in self.houses if house not in houses_placed]
+        houses_not_placed = [house for house in self.houses if house not in houses_placed]
         
         # * shuffle houses such that unconnected houses are placed
-        if len(self.houses_not_placed) > 0:
-            distribute(self.batteries, self.houses_not_placed)
+        if len(houses_not_placed) > 0:
+            distribute(self.batteries, houses_not_placed)
             
         # * copy all paths of the battery to initialize
         for battery in self.batteries:
