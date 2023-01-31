@@ -7,14 +7,28 @@ import copy
 import pandas as pd
  
 class Battery(mesa.Agent):
+    """
+    Battery agent that houses connect to.
+    """
     def __init__(self, unique_id: int, model: mesa.model,
                  x: int, y: int, energy: float) -> None:
+        """
+        Creates a battery agent with a unique id and a x and y coordinate.
+        The battery has a max capacity and a remaining amount of energy space.
+
+        Args:
+            unique_id (int): unique id of the agent.
+            model (mesa.model): model the agent is part of.
+            x (int): x coordinate.
+            y (int): y coordinate.
+            energy (float): Total capacity of the battery.
+        """
         super().__init__(unique_id, model)
-        self.x = x  # x coordinate
-        self.y = y  # y coordinate
-        self.capacity = energy  # total capacity of battery
-        self.energy = energy  # remaining energy
-        self.houses: list[House] = [] #
+        self.x = x  
+        self.y = y  
+        self.capacity = energy  
+        self.energy = energy  # remaining energy space
+        self.houses: list[House] = [] # all houses connected to this battery
         self.all_paths = [[(x, y)]]
         self.copy_paths: list[list[tuple[int, int]]] = []
     
