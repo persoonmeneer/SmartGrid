@@ -143,8 +143,6 @@ class SmartGrid(mesa.Model):
             if battery_found:
                 # add house to battery and copy all the paths in battery
                 best_battery.add_house(house)
-                best_battery.copy_all_paths()
-            
                 houses_placed.append(house)
         
         # get all the houses which are not placed
@@ -153,6 +151,10 @@ class SmartGrid(mesa.Model):
         # * shuffle houses such that unconnected houses are placed
         if len(self.houses_not_placed) > 0:
             distribute(self.batteries, self.houses_not_placed)
+            
+        # * copy all paths of the battery to initialize
+        for battery in self.batteries:
+            battery.copy_all_paths()
 
     def lay_cables(self, battery_list: List[Battery]) -> None:
         """
