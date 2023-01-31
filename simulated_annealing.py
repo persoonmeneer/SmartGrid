@@ -76,8 +76,8 @@ def optimization(smartgrid, iteration: int) -> None:
             smartgrid.copy_optimize()
 
             # ! uncomment in case of finding simulated annealing data
-            smartgrid.copied_model = changed_empty_model
-            continue
+            # smartgrid.copied_model = changed_empty_model
+            # continue
         
         smartgrid.copied_model = empty_model
     
@@ -86,5 +86,5 @@ def optimization(smartgrid, iteration: int) -> None:
     smartgrid.copy_optimize()
 
     # ! uncomment in case of finding simulated annealing data
-    df = pd.DataFrame(results, columns = ["Costs"])
-    df.to_csv("simulated_annealing_data.csv")
+    # df = pd.DataFrame(results, columns = ["Costs"])
+    # df.to_csv("simulated_annealing_data.csv")

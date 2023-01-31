@@ -300,12 +300,12 @@ if __name__ == "__main__":
     with open("district1.json", "w") as outfile:
         json.dump(test_wijk_1.information, outfile)
  
-    # test_wijk_2 = SmartGrid(2)
-    # print(test_wijk_2.costs())
-    # with open("district2.json", "w") as outfile:
-    #     json.dump(test_wijk_2.information, outfile)
+    test_wijk_2 = SmartGrid(2)
+    print(test_wijk_2.costs())
+    with open("district2.json", "w") as outfile:
+        json.dump(test_wijk_2.information, outfile)
  
-    # test_wijk_3 = SmartGrid(3)
-    # print(test_wijk_3.costs())
-    # with open("district3.json", "w") as outfile:
-    #     json.dump(test_wijk_3.information, outfile)
+    test_wijk_3 = SmartGrid(3)
+    print(test_wijk_3.costs())
+    with open("district3.json", "w") as outfile:
+        json.dump(test_wijk_3.information, outfile)

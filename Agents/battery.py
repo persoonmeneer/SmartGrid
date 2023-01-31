@@ -52,6 +52,10 @@ class Battery(mesa.Agent):
             # create new cable
             cable = Cable(i + 150*self.unique_id, self.model, point[0], point[1], self.unique_id)
             
+            # add cable to all houses connected to the battery
+            for house in self.houses:
+                house.add_cable(cable)
+                
             # place cable in grid
             self.model.grid.place_agent(cable, point)
             
