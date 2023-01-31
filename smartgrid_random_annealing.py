@@ -41,7 +41,7 @@ class SmartGrid(mesa.Model):
         self.lay_cables(self.batteries)
         
         # optimize connections
-        self.optimization(5000)
+        self.optimization(100000)
        
         # get representation info
         self.get_information()   
@@ -254,7 +254,7 @@ def plot_annealing():
     
     plt.plot(list(range(len(data))), data.Costs)
     plt.show()
-    print(data.Costs)
+
  
 if __name__ == "__main__":
     test_wijk_1 = SmartGrid(1)
