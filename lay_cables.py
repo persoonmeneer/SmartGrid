@@ -149,6 +149,7 @@ def create_merged_path(battery: Battery) -> None:
     Args:
         battery (Battery): a battery
     """
+    
     min_dist = -1
     
     for i, path_1 in enumerate(battery.all_paths):

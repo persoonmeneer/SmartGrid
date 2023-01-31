@@ -6,7 +6,7 @@ import random
 from Agents.cable import Cable
 from Agents.house import House
 from Agents.battery import Battery
-from typing import Union, Optional
+from typing import Union, Optional, Tuple
 import csv
 import matplotlib.pyplot as plt
 import copy
@@ -15,16 +15,30 @@ import numpy as np
 
 
 class SmartGrid(mesa.Model):
+    """
+    SmartGrid model that contains houses, batteries and cables.
+    Each house has their own cable connecting them to batteries.
+    """
     def __init__(self, district: int) -> None:
+        """
+        Creates a SmartGrid model that contains houses, batteries and cables.
+        The size of the model is initialized by the coordinates of the most
+        extreme located houses or batteries. Houses will be connected to random
+        batteries each having their own cable creating random grids.
+
+        Args:
+            district (int): The district we want to create a Smartgrid for.
+        """
         self.houses = self.add_objects(district, 'houses')
         self.batteries = self.add_objects(district, 'batteries')
         self.objects = self.houses + self.batteries
-        self.num_cables = 0
-        self.success = True
-        self.costs_grid = 0
+        self.num_cables = 0 # initialize at 0
+        self.success = True # tracks whether the random composition works
+        self.costs_grid = 0 # initialize at 0
 
+        # create grid space
         width, height = self.bound()
-        self.grid = mesa.space.MultiGrid(width + 1, height + 1, False)
+        self.grid = mesa.space.MultiGrid(width + 1, height + 1, False) 
 
         # add houses to grid
         for i in self.houses:
@@ -38,7 +52,14 @@ class SmartGrid(mesa.Model):
         self.lay_cable_random()
 
 
-    def bound(self) -> None:
+    def bound(self) -> Tuple(int):
+        """
+        Function that finds the maximum x and y coordinate of the objects
+        in the SmartGrid.
+
+        Returns:
+        Tuple with maximum x and y coordinate.
+        """
         x = 0
         y = 0
 
@@ -103,6 +124,12 @@ class SmartGrid(mesa.Model):
         return lst
 
     def lay_cable_random(self) -> None:
+        """
+        Function that connects all houses to random batteries if possible.
+        Then creates for each house a path to the battery and creates and
+        lays the cable. If some house can't connect to any battery the
+        composition fails and sets self.succes to False.
+        """
         cable_id = 1000
         
         random.shuffle(self.houses)
@@ -115,6 +142,7 @@ class SmartGrid(mesa.Model):
             # if the battery is not available pick a new one
             while not house.check_connection(self.batteries[destination]):
                 counter += 1
+                # if the house can't connect to any battery stop
                 if counter == len(self.batteries):
                     self.success = False
                     return
@@ -123,6 +151,7 @@ class SmartGrid(mesa.Model):
                 if destination > len(self.batteries) - 1:
                     destination = 0
 
+            # connect the house to the random destination battery
             destination = self.batteries[destination]
             destination.add_house(house)
             
@@ -130,7 +159,7 @@ class SmartGrid(mesa.Model):
             # x and y coordinate of the connected battery
             battery = house.connection
 
-                
+            # create a path from the house to the battery
             if battery.x >= house.x and battery.y <= house.y:
                 horizontal = [(i, house.y) for i in range(house.x, battery.x + 1, 1)]
                 vertical = [(battery.x, i) for i in np.arange(house.y, battery.y - 1, -1)]
@@ -146,15 +175,26 @@ class SmartGrid(mesa.Model):
             
             path = horizontal + vertical
             
-            # remove the dublicate coordinates at turns
+            # remove the duplicate coordinates at turns
             path = pd.unique(path).tolist()
                           
             for space in path:
-                # add cable to the house
+                # add cable to the house and place it
                 self.addCable(space[0], space[1], house, cable_id)
                 cable_id += 1
 
     def addCable(self, x: int, y: int, house: House, cable_id: int) -> None:
+        """
+        Function that creates a cable at coordinates (x, y) and connects it to
+        the specified house. Also gives the cable an unique id.
+
+        Args:
+            x (int): x coordinate of the cable.
+            y (int): y coordinate of the cable.
+            house (House): house for the cable to belong to.
+            cable_id (int): unique id of the cable
+        """
+        # creates the cable
         new_cable = Cable(cable_id, self, x, y, house.connection.unique_id)
         new_cable.battery_connection = house.connection
         house.add_cable(new_cable)
@@ -166,9 +206,19 @@ class SmartGrid(mesa.Model):
         self.grid.place_agent(new_cable, (x, y))
         
     def costs(self) -> Optional[int]:
+        """
+        Function that calculates the costs of the random SmartGrid
+        composition. If a house was unable to connect to any battery
+        the function will return None.
+
+        Returns:
+            Optional[int]: an integer if all houses were connected else None.
+        """
+        # if not all batteries were connected return None
         if self.success == False:
             return None
         
+        # else calculate and return the costs
         cable_cost = self.num_cables * 9
         battery_cost = 5000 * len(self.batteries)
         self.costs_grid = cable_cost + battery_cost
@@ -180,6 +230,7 @@ if __name__ == "__main__":
     results = []
     fails = 0
     
+    # run the random model 100000 times and save the results
     runs = 100000
     for i in range(runs):
         test_wijk_1 = SmartGrid(1)
@@ -189,12 +240,12 @@ if __name__ == "__main__":
             fails += 1
     
     perc_fails = (fails / runs) * 100
-    print(perc_fails)
     
+    # plot the distribution of the results
     plt.hist(results, bins=20)
     plt.show()
     
+    # add the percentage of failure to the data and export
     results.append(perc_fails)
-    
     df = pd.DataFrame(results, columns = ["Costs"])
     df.to_csv("baseline_data.csv")
