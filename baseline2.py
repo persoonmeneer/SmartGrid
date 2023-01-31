@@ -73,7 +73,8 @@ class SmartGrid(mesa.Model):
 
 
     def add_objects(self, district: int, info: str) -> Union[list[House], list[Battery]]:
-        """Add houses or battery list of district depending on 'info'
+        """
+        Add houses or battery list of district depending on 'info'
 
         Args:
             district (int): district number
@@ -157,7 +158,6 @@ class SmartGrid(mesa.Model):
             destination = self.batteries[destination]
             destination.add_house(house)
 
-            # x and y coordinate of the connected battery
             battery = house.connection
 
             # create a path from the house to the battery
