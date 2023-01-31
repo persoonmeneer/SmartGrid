@@ -196,7 +196,7 @@ if __name__ == "__main__":
     results = []
     fails = 0
     
-    runs = 1000
+    runs = 100000
     for i in range(runs):
         mesa_wijk_1 = SmartGrid(1)
         if mesa_wijk_1.costs() != None:
