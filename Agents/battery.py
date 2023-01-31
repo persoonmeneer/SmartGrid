@@ -63,7 +63,7 @@ class Battery(mesa.Agent):
             self.model.cables.append(cable)
             
         # add all cables to number of cables
-        return i + 1
+        return i
  
     def add_house(self, house: House) -> None:
         """
