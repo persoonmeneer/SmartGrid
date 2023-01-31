@@ -63,8 +63,8 @@ def optimization(smartgrid, iteration: int) -> None:
         new_costs = smartgrid.copied_model.costs()
         
         # acceptance probability
-        # acc_prob *= 0.99
-        acc_prob = acc_prob / (1 + 0.1 * acc_prob)
+        acc_prob *= 0.99
+        # acc_prob = acc_prob / (1 + 0.1 * acc_prob)
         
         # if new lay-out has less costs or with certain probability accept change
         if new_costs < min_costs:
@@ -76,8 +76,8 @@ def optimization(smartgrid, iteration: int) -> None:
             smartgrid.copy_optimize()
 
             # ! uncomment in case of finding simulated annealing data
-            # smartgrid.copied_model = changed_empty_model
-            # continue
+            smartgrid.copied_model = changed_empty_model
+            continue
         
         smartgrid.copied_model = empty_model
     

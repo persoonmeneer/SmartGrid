@@ -13,6 +13,7 @@ from lay_cables import *
 import random
 from simulated_annealing import optimization
 from distribute import distribute
+from place_battery import cluster_funct
   
 class SmartGrid(mesa.Model):
     def __init__(self, district: int) -> None:
@@ -26,13 +27,12 @@ class SmartGrid(mesa.Model):
         
         # variable for representation
         self.information: list[dict[str, Any]] = []
-        
-        # list of not connected houses
-        self.houses_not_placed: list[House] = []
  
         # create the grid
         self.create_grid()
  
+        cluster_funct(self.houses)
+        
         # order placement
         self.placement_order()
  
@@ -146,11 +146,11 @@ class SmartGrid(mesa.Model):
                 houses_placed.append(house)
         
         # get all the houses which are not placed
-        self.houses_not_placed = [house for house in self.houses if house not in houses_placed]
+        houses_not_placed = [house for house in self.houses if house not in houses_placed]
         
         # * shuffle houses such that unconnected houses are placed
-        if len(self.houses_not_placed) > 0:
-            distribute(self.batteries, self.houses_not_placed)
+        if len(houses_not_placed) > 0:
+            distribute(self.batteries, houses_not_placed)
             
         # * copy all paths of the battery to initialize
         for battery in self.batteries:
