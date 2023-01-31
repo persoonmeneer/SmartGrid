@@ -64,11 +64,11 @@ def plot_annealing():
     print(data.Costs)
         
 
-if __name__ == "__main__":
+if __name__ == "__main__":  
     grid = mesa.visualization.CanvasGrid(agent_portrayal, 51, 51, 510, 510)
 
     server = mesa.visualization.ModularServer(
-    SmartGrid, [grid], "Smart Grid", {"district": 1}
+    SmartGrid, [grid], "Smart Grid", {"district": i}
     )
     
     # ! uncomment in case of visualizing simulated annealing data

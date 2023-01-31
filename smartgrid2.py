@@ -13,6 +13,7 @@ from lay_cables import *
 import random
 from simulated_annealing import optimization
 from distribute import distribute
+from place_battery import cluster_funct
   
 class SmartGrid(mesa.Model):
     def __init__(self, district: int) -> None:
@@ -30,6 +31,8 @@ class SmartGrid(mesa.Model):
         # create the grid
         self.create_grid()
  
+        cluster_funct(self.houses)
+        
         # order placement
         self.placement_order()
  
