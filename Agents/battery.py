@@ -11,7 +11,7 @@ class Battery(mesa.Agent):
     Battery agent that houses connect to.
     """
     def __init__(self, unique_id: int, model: mesa.model,
-                 x: int, y: int, energy: float) -> None:
+                 x: int, y: int, energy: float, costs: int) -> None:
         """
         Creates a battery agent with a unique id and a x and y coordinate.
         The battery has a max capacity and a remaining amount of energy space.
@@ -31,6 +31,7 @@ class Battery(mesa.Agent):
         self.houses: list[House] = [] # all houses connected to this battery
         self.all_paths = [[(x, y)]]
         self.copy_paths: list[list[tuple[int, int]]] = []
+        self.costs = costs
     
     def copy_all_paths(self) -> None:
         """

@@ -17,6 +17,25 @@ BIG_BAT_DAT: Final = (1800, 1800)
 MID_BAT_DAT: Final = (900, 1350)
 LOW_BAT_DAT: Final = (450, 900)
 
+def check_point_in_df(dataframe: pd.DataFrame, x: int, y: int) -> bool:
+    """
+    This function checks if (x, y) is in the dataframe
+
+    Args:
+        dataframe (pd.DataFrame): a dataframe with data houses
+        x (int): x value in grid
+        y (int): y value in grid
+
+    Returns:
+        bool: True if a house is placed at (x, y) else False
+    """
+    
+    # find data on the centre point
+    df = dataframe[(dataframe.x == x) & (dataframe.y == y)]
+    
+    # return True if df is empty
+    return df.empty
+
 def cluster_funct(houses_list: List[House]) -> List[Battery]:
     """
     This function makes clusters
@@ -27,6 +46,9 @@ def cluster_funct(houses_list: List[House]) -> List[Battery]:
     Returns:
         List[Battery]: list of placed batteries
     """
+    
+    # initiate battery list
+    battery_lst = []
     
     # make a dataset with the house locations
     X = []
@@ -40,8 +62,7 @@ def cluster_funct(houses_list: List[House]) -> List[Battery]:
     # convert to 2D numpy array
     X = np.array(X)
     
-    while max_cluster_output > BIG_BAT_DAT[0]:  
-
+    while True:  
         # run K-means on X
         clustering = KMeans(n_clusters=num_clust, random_state=0).fit(X)
 
@@ -52,7 +73,7 @@ def cluster_funct(houses_list: List[House]) -> List[Battery]:
         data['output'] = [house.energy for house in houses_list]
         data['cluster'] = clustering.labels_
         
-        # * stop while loop if all the cluesters are less then big battery capacity
+        # * stop while loop if all the cluesters are less then big battery capacity 
         for i in data['cluster']:
             # filter the data by cluster
             filter_data = data[data.cluster == i]
@@ -64,4 +85,55 @@ def cluster_funct(houses_list: List[House]) -> List[Battery]:
         else:
             break
         
+        # update number of clusters
         num_clust += 1
+    
+    # definte the unique clusters
+    unique_clusters = data['cluster'].unique()
+    
+    # create sorted clusters by total output batteries
+    for i in unique_clusters:
+        # filter the data by cluster
+        filter_data = data[data.cluster == i]
+        
+        # calculate the output sum
+        cluster_output = filter_data['output'].sum()
+        
+        # calculate centre point
+        centre_x = round(filter_data['x'].mean())
+        centre_y = round(filter_data['y'].mean())
+        
+        # variable which checks if the centre points are in filter_data
+        point_in_df: bool = check_point_in_df(filter_data, centre_x, centre_y)
+        
+        # check surrounding points if that is empty if so, edit centre points
+        if point_in_df:
+            # pass surrounding places
+            for x in range(centre_x - 1, centre_x + 2):
+                for y in range(centre_y - 1, centre_y + 2):
+                    # check centre point
+                    new_point_in_df = check_point_in_df(filter_data, x, y)
+                    if not new_point_in_df:
+                        centre_x, centre_y = x, y
+        
+        # edit cluster output when at last
+        if i == unique_clusters[-1]:
+            # house and battery energy levels
+            house_output = sum([house.energy for house in houses_list])
+            battery_capacity = sum([battery.capacity for battery in battery_lst])
+            
+            # modify cluster output
+            cluster_output = house_output - battery_capacity
+            
+        # create batteries
+        if cluster_output > MID_BAT_DAT[0]:
+            battery_lst.append(Battery(i, i,centre_x, centre_y, BIG_BAT_DAT[0], BIG_BAT_DAT[1]))
+            continue
+        elif cluster_output > LOW_BAT_DAT[0]:
+            battery_lst.append(Battery(i, i, centre_x, centre_y, MID_BAT_DAT[0], MID_BAT_DAT[1]))
+            continue
+        else:
+            battery_lst.append(Battery(i, i, centre_x, centre_y, LOW_BAT_DAT[0], LOW_BAT_DAT[1]))
+            continue  
+    
+    return battery_lst

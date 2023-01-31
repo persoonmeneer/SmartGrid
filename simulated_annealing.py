@@ -64,7 +64,6 @@ def optimization(smartgrid, iteration: int) -> None:
         
         # acceptance probability
         acc_prob *= 0.99
-        # acc_prob = acc_prob / (1 + 0.1 * acc_prob)
         
         # if new lay-out has less costs or with certain probability accept change
         if new_costs < min_costs:
