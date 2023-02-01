@@ -40,9 +40,9 @@ Finally we also decide where the batteries can be placed in the district. Not on
 
 #### Requirements
 This codebase has been written completely in python. In requirements.txt are all the needed packages to run the code succesfully. They can be installed using the following:
-
-pip install -r requirements
-
+```
+pip install -r requirements.txt
+```
 
 ## Usage
 All the code can be ran using 
