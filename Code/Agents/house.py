@@ -1,6 +1,6 @@
 from __future__ import annotations
-import mesa
 from Agents.battery import Battery
+import mesa
 
 class House(mesa.Agent):
     """

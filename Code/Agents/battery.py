@@ -1,10 +1,10 @@
  
 from __future__ import annotations
 from Agents.cable import Cable
+import pandas as pd
 import copy
 import mesa
 import copy
-import pandas as pd
  
 class Battery(mesa.Agent):
     """

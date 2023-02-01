@@ -2,11 +2,11 @@
 This python file does simulated annealing with the geometric rule
 """
 
+from math import exp
+import pandas as pd
 import copy
 import random
-from math import exp
 import csv
-import pandas as pd
 
 def optimization(smartgrid, iteration: int) -> None:
     """
@@ -57,7 +57,7 @@ def optimization(smartgrid, iteration: int) -> None:
         changed_empty_model = copy.deepcopy(smartgrid.copied_model)
         
         # create the cables
-        smartgrid.copied_model.lay_cables(smartgrid.copied_model.batteries)
+        smartgrid.copied_model.lay_cables_v2(smartgrid.copied_model.batteries)
         
         # calculate the new costs
         new_costs = smartgrid.copied_model.costs()
@@ -70,22 +70,20 @@ def optimization(smartgrid, iteration: int) -> None:
             best_model = smartgrid.copied_model
             min_costs = new_costs
             
-        if new_costs < old_costs or random.random() <= acc_prob:
+        if new_costs < old_costs and smartgrid.version != 'random annealing':
+            smartgrid.copy_optimize()
+        elif smartgrid.version == 'random annealing' and (new_costs < old_costs or random.random() <= acc_prob):
             smartgrid.copy_optimize()
             results.append(new_costs)
-            
-            # ! uncomment in case of finding simulated annealing data
-            # smartgrid.copied_model = changed_empty_model
-            # continue
+            smartgrid.copied_model = changed_empty_model
+            continue
         
-        
-        print(new_costs)
         smartgrid.copied_model = empty_model
     
     # make the smartgrid the best selection of the iterated models
     smartgrid.copied_model = best_model
     smartgrid.copy_optimize()
 
-    # ! uncomment in case of finding simulated annealing data
-    # df = pd.DataFrame(results, columns = ["Costs"])
-    # df.to_csv("simulated_annealing_data.csv")
+    if smartgrid.version == 'random annealing':
+        df = pd.DataFrame(results, columns = ["Costs"])
+        df.to_csv("simulated_annealing_data.csv")

@@ -7,10 +7,9 @@ from sklearn.cluster import KMeans
 from Agents.battery import Battery
 from Agents.house import House
 from typing import List, Final
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 
 # ! data of the different batteries in format ([capacity], [costs])
 BIG_BAT_DAT: Final = (1800, 1800)
