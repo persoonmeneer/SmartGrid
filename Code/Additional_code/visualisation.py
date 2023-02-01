@@ -94,7 +94,6 @@ def visualisation(smartgrid, Model):
     server = mesa.visualization.ModularServer(
     Model, [grid], "Smart Grid",{"district": smartgrid.district, "version": smartgrid.version, "iterations": smartgrid.iterations}
     )
-    print(len(server.model.cables))
     server.model = smartgrid
     server.port = 8521  # The default
     server.launch()

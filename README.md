@@ -49,7 +49,7 @@ All the code can be ran using
 ```
 python main.py
 ```
-This gives you first the option to run a baseline to see the distribution of random solutions without optimization or to run smartgrid which gives the option to run one of the specific algorithms above. Then you choose what district you want to use, what algorithm (except if you choose baseline) and then howmany iterations.
+This gives you first the option to run a baseline to see the distribution of random solutions without optimization or to run smartgrid which gives the option to run one of the specific algorithms above. Then you choose what district you want to use, what algorithm (except if you choose baseline) and then how many iterations. After that has run, you get the option to see the results of the simulation in case "smartgrid" has been chosen.
 
 #### Authors
 + Karel Vreeburg
