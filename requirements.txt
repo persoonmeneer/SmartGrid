@@ -2,3 +2,4 @@ mesa=1.1.1
 pandas=1.2.4
 numpy=1.23.4
 matplotlib=3.3.4
+python=3.9
