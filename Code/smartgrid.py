@@ -3,6 +3,15 @@ This program runs smartgrid simulations depending on the users inpu
 """
 
 from __future__ import annotations
+import csv
+import json
+import copy
+import random
+from typing import Union, Any, Tuple, List
+from operator import attrgetter
+import mesa
+import pandas as pd
+import numpy as np
 from Additional_code.simulated_annealing import optimization
 from Additional_code.distribute import distribute
 from Additional_code.place_battery import cluster_funct
@@ -11,26 +20,18 @@ from Additional_code.lay_cables import create_merged_path
 from Agents.battery import Battery
 from Agents.house import House
 from Agents.cable import Cable
-from typing import Union, Any, Tuple, List
-from operator import attrgetter
-import numpy as np
-import pandas as pd
-import random
-import mesa
-import csv
-import json
-import copy
 
 
 class SmartGrid(mesa.Model):
+    """ A smartgrid situation"""
     def __init__(self, district: int, version: str, iterations: int) -> None:
         # objects
-        self.houses: list[House] = self.add_objects(district, 'houses')
+        self.houses: List[House] = self.add_objects(district, 'houses')
 
         # which version we want to use
         self.version = version
         self.iterations = iterations
-        
+
         # whether we choose to do the advanced version of the code
         if self.version == 'advanced':
             # add own defined batteries
@@ -40,16 +41,16 @@ class SmartGrid(mesa.Model):
             for battery in self.batteries:
                 battery.model = self
         else:
-            self.batteries: list[House] = self.add_objects(district,
-                                                           'batteries')
+            self.batteries: List[Battery] = self.add_objects(district,
+                                                             'batteries')
 
-        self.cables: list[Cable] = []
+        self.cables: List[Cable] = []
 
         # the district which is chosen
         self.district = district
 
         # variable for representation
-        self.information: list[dict[str, Any]] = []
+        self.information: List[dict[str, Any]] = []
 
         # create the grid
         self.create_grid()
@@ -86,15 +87,19 @@ class SmartGrid(mesa.Model):
 
         # find the maximum x and y values of the houses and battery lists
         max_x: int = max([max(self.houses, key=attrgetter('x'))] +
-                    [max(self.batteries, key=attrgetter('x'))],
-                    key=attrgetter('x'))
+                         [max(self.batteries, key=attrgetter('x'))],
+                         key=attrgetter('x'))
         max_y: int = max([max(self.houses, key=attrgetter('y'))] +
-                    [max(self.batteries, key=attrgetter('y'))],
-                    key=attrgetter('y'))
+                         [max(self.batteries, key=attrgetter('y'))],
+                         key=attrgetter('y'))
 
         return (max_x.x, max_y.y)
 
     def create_grid(self) -> None:
+        """
+        This functions initialises the grid
+        """
+
         width, height = self.bound()
         self.grid: mesa.space = mesa.space.MultiGrid(width + 1,
                                                      height + 1, False)
@@ -115,7 +120,7 @@ class SmartGrid(mesa.Model):
 
         for house in self.houses:
             # list of distances to all the batteries
-            dist_batteries: list[int] = []
+            dist_batteries: List[int] = []
 
             # find the distance for all the batteries
             for battery in self.batteries:
@@ -170,11 +175,11 @@ class SmartGrid(mesa.Model):
                         battery_found = True
             else:
                 # pick a random battery order as destinations
-                destinations: List[Battery] = random.sample(self.batteries,
-                                             len(self.batteries))
+                sample: List[Battery] = random.sample(self.batteries,
+                                                      len(self.batteries))
 
                 # check each battery if suitable
-                for destination in destinations:
+                for destination in sample:
                     # if the battery has enough space connect and break
                     if house.check_connection(destination):
                         destination.add_house(house)
@@ -272,7 +277,7 @@ class SmartGrid(mesa.Model):
         # place cable in the grid
         self.grid.place_agent(new_cable, (x, y))
 
-    def lay_cables_v2(self, battery_list: list[Battery]) -> None:
+    def lay_cables_v2(self, battery_list: List[Battery]) -> None:
         """
         This functions places the cables to connect all houses to the
         batteries
@@ -381,7 +386,8 @@ class SmartGrid(mesa.Model):
         """
 
         # path to data
-        path = '../Huizen&Batterijen/district_' + str(district) + '/district-' + str(district) + '_' + info + '.csv'
+        path = 'Huizen&Batterijen/district_' + str(district)
+        path += '/district-' + str(district) + '_' + info + '.csv'
 
         # list with the information
         lst = []
@@ -449,7 +455,7 @@ if __name__ == "__main__":
     print(smartgrid.costs())
 
     # export smartgrid information
-    with open(f"../Smartgrid_data/smartgrid{district}_{version}.json",
+    with open(f"Smartgrid_data/smartgrid{district}_{version}.json",
               "w") as outfile:
         json.dump(smartgrid.information, outfile)
 

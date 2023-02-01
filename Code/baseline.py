@@ -1,44 +1,35 @@
-# Thomas, Karel, Joris
+"""
+This program runs the baselines
+"""
 
 from __future__ import annotations
 from Agents.cable import Cable
 from Agents.house import House
 from Agents.battery import Battery
-from typing import Union, Optional, Tuple
+from typing import Union, Optional, Tuple, List
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import mesa
 import random
-import copy
 import csv
 
 
 class SmartGrid(mesa.Model):
-    """
-    SmartGrid model that contains houses, batteries and cables.
-    Each house has their own cable connecting them to batteries.
-    """
+    """A smartgrid situation"""
     def __init__(self, district: int, version: int) -> None:
-        """
-        Creates a SmartGrid model that contains houses, batteries and cables.
-        The size of the model is initialized by the coordinates of the most
-        extreme located houses or batteries. Houses will be connected to random
-        batteries each having their own cable creating random grids.
-
-        Args:
-            district (int): The district we want to create a Smartgrid for.
-        """
-        self.houses = self.add_objects(district, 'houses')
-        self.batteries = self.add_objects(district, 'batteries')
+        # objects
+        self.houses: List[House] = self.add_objects(district, 'houses')
+        self.batteries: List[House] = self.add_objects(district, 'batteries')
         self.objects = self.houses + self.batteries
-        self.num_cables = 0 # initialize at 0
-        self.success = True # tracks whether the random composition works
-        self.costs_grid = 0 # initialize at 0
+
+        self.num_cables: int = 0  # initialize at 0
+        self.success: bool = True  # tracks the random composition
+        self.costs_grid: int = 0  # initialize at 0
 
         # create grid space
         width, height = self.bound()
-        self.grid = mesa.space.MultiGrid(width + 1, height + 1, False) 
+        self.grid = mesa.space.MultiGrid(width + 1, height + 1, False)
 
         # add houses to grid
         for i in self.houses:
@@ -51,17 +42,14 @@ class SmartGrid(mesa.Model):
         # add cables to grid
         self.lay_cable_random()
 
-
-    def bound(self) -> Tuple(int):
+    def bound(self) -> Tuple[int, int]:
         """
-        Function that finds the maximum x and y coordinate of the objects
-        in the SmartGrid.
-
-        Returns:
-        Tuple with maximum x and y coordinate.
+        This function finds the borders of the objects coordinates
+        and returns these
         """
-        x = 0
-        y = 0
+
+        x: int = 0
+        y: int = 0
 
         for i in self.objects:
             if i.x > x:
@@ -71,8 +59,8 @@ class SmartGrid(mesa.Model):
 
         return (x, y)
 
-
-    def add_objects(self, district: int, info: str) -> Union[list[House], list[Battery]]:
+    def add_objects(self, district: int,
+                    info: str) -> Union[List[House], List[Battery]]:
         """
         Add houses or battery list of district depending on 'info'
 
@@ -81,11 +69,12 @@ class SmartGrid(mesa.Model):
             info (str): 'houses' or 'batteries'
 
         Returns:
-            Union[list[House], list[Battery]]: a list with all the houses or batteries
+            a list with all the houses or batteries
         """
 
         # path to data
-        path = 'Huizen&Batterijen/district_' + str(district) + '/district-' + str(district) + '_' +  info + '.csv'
+        path = 'Huizen&Batterijen/district_' + str(district)
+        path += '/district-' + str(district) + '_' + info + '.csv'
 
         # list with the information
         lst = []
@@ -126,28 +115,26 @@ class SmartGrid(mesa.Model):
 
     def lay_cable_random(self) -> None:
         """
-        Function that connects all houses to random batteries if possible.
-        Then creates for each house a path to the battery and creates and
-        lays the cable. If some house can't connect to any battery the
-        composition fails and sets self.succes to False.
+        This function creates random cables
         """
-        cable_id = 1000
-        
+
+        cable_id: int = 1000
+
         random.shuffle(self.houses)
-        
+
         for house in self.houses:
             # pick a random battery as destination
             destination = random.choice(range(len(self.batteries)))
 
-            counter = 0
+            counter: int = 0
             # if the battery is not available pick a new one
             while not house.check_connection(self.batteries[destination]):
                 counter += 1
                 # if the house can't connect to any battery stop
                 if counter == len(self.batteries):
                     self.success = False
-                    return
-                
+                    return None
+
                 destination += 1
                 if destination > len(self.batteries) - 1:
                     destination = 0
@@ -155,61 +142,69 @@ class SmartGrid(mesa.Model):
             # connect the house to the random destination battery
             destination = self.batteries[destination]
             destination.add_house(house)
-            
 
             # x and y coordinate of the connected battery
             battery = house.connection
 
             # create a path from the house to the battery
             if battery.x >= house.x and battery.y <= house.y:
-                horizontal = [(i, house.y) for i in range(house.x, battery.x + 1, 1)]
-                vertical = [(battery.x, int(i)) for i in np.arange(house.y, battery.y - 1, -1)]
+                horizontal = [(i, house.y) for i in
+                              range(house.x, battery.x + 1, 1)]
+                vertical = [(battery.x, int(i)) for i in
+                            np.arange(house.y, battery.y - 1, -1)]
             elif battery.x >= house.x and battery.y >= house.y:
-                horizontal = [(i, house.y) for i in range(house.x, battery.x + 1, 1)]
-                vertical = [(battery.x, i) for i in range(house.y, battery.y + 1, 1)]
-            elif battery.x <= house.x and battery.y >= house.y:   
-                horizontal = [(int(i), house.y) for i in np.arange(house.x, battery.x - 1, -1)] 
-                vertical = [(battery.x, i) for i in range(house.y, battery.y + 1, 1)]
+                horizontal = [(i, house.y) for i in
+                              range(house.x, battery.x + 1, 1)]
+                vertical = [(battery.x, i) for i in
+                            range(house.y, battery.y + 1, 1)]
+            elif battery.x <= house.x and battery.y >= house.y:
+                horizontal = [(int(i), house.y) for i in
+                              np.arange(house.x, battery.x - 1, -1)]
+                vertical = [(battery.x, i) for i in
+                            range(house.y, battery.y + 1, 1)]
             elif battery.x <= house.x and battery.y <= house.y:
-                horizontal = [(int(i), house.y) for i in np.arange(house.x, battery.x - 1, -1)] 
-                vertical = [(battery.x, int(i)) for i in np.arange(house.y, battery.y - 1, -1)]
-            
+                horizontal = [(int(i), house.y) for i in
+                              np.arange(house.x, battery.x - 1, -1)]
+                vertical = [(battery.x, int(i)) for i in
+                            np.arange(house.y, battery.y - 1, -1)]
+
             path = horizontal + vertical
-            
+
             # remove the duplicate coordinates at turns
             path = pd.unique(path).tolist()
-            
-            if version == 1:         
+
+            if version == 1:
                 for space in path:
                     # add cable to the house and place it
-                    self.addCable(space[0], space[1], house, cable_id)
+                    self.add_cable(space[0], space[1], house, cable_id)
                     cable_id += 1
             else:
-                break_loop = False
-                first = True
+                break_loop: bool = False
+                first: bool = True
                 for space in path:
                     if not first:
-                        # check if there already is a cable going to the battery
+                        # check if a cable exists going to the battery
                         items = self.grid[space[0]][space[1]]
-                        
+
                         if len(items) >= 1:
                             for item in items:
-                                # if there is a cable going to the same battery already stop
-                                if isinstance(item, Cable):
-                                    if item.battery_connection == house.connection:
-                                        break_loop = True
-                                        break
+                                # stop if cable goes to battery
+                                if (isinstance(item, Cable) and
+                                   item.battery_connection == house.connection):
+                                    break_loop = True
+                                    break
 
-                            if break_loop == True:
+                            # break the loop
+                            if break_loop:
                                 break
-                    
+
                     # add cable to the house and place it
-                    self.addCable(space[0], space[1], house, cable_id)
+                    self.add_cable(space[0], space[1], house, cable_id)
                     cable_id += 1
-                    
+
                     first = False
 
-    def addCable(self, x: int, y: int, house: House, cable_id: int) -> None:
+    def add_cable(self, x: int, y: int, house: House, cable_id: int) -> None:
         """
         Function that creates a cable at coordinates (x, y) and connects it to
         the specified house. Also gives the cable an unique id.
@@ -220,6 +215,7 @@ class SmartGrid(mesa.Model):
             house (House): house for the cable to belong to.
             cable_id (int): unique id of the cable
         """
+
         # creates the cable
         new_cable = Cable(cable_id, self, x, y, house.connection.unique_id)
         new_cable.battery_connection = house.connection
@@ -230,7 +226,7 @@ class SmartGrid(mesa.Model):
 
         # place cable in the grid
         self.grid.place_agent(new_cable, (x, y))
-        
+
     def costs(self) -> Optional[int]:
         """
         Function that calculates the costs of the random SmartGrid
@@ -240,55 +236,65 @@ class SmartGrid(mesa.Model):
         Returns:
             Optional[int]: an integer if all houses were connected else None.
         """
+
         # if not all batteries were connected return None
-        if self.success == False:
+        if not self.success:
             return None
-        
+
         # else calculate and return the costs
         cable_cost = self.num_cables * 9
         battery_cost = 5000 * len(self.batteries)
         self.costs_grid = cable_cost + battery_cost
-        
+
         return self.costs_grid
-    
+
 
 if __name__ == "__main__":
-    results = []
-    fails = 0
-    
+    # information to keep track of
+    results: List[int] = []
+    fails: int = 0
+
+    # asks user for valid input district
     district = input('Which district would you like to run (1-3): ')
-    while district not in ["1","2","3"]:
+    while district not in ["1", "2", "3"]:
         district = input('Which district would you like to run (1-3): ')
-    
+
+    # convert district to an integer
     district = int(district)
-    
+
+    # asks user for valid input version
     version = input('Which version would you like to run (1/2): ')
-    while version not in ["1","2"]:
+    while version not in ["1", "2"]:
         version = input('Which version would you like to run (1/2): ')
-    
+
+    # convert version to integer
     version = int(version)
-        
+
     # run the random model x times and save the results
     iterations = int(input("How many iterations would you like to run: "))
     while iterations < 0:
         # run the random model x times and save the results
         iterations = int(input("How many iterations would you like to run: "))
-    
+
+    # run the simulation iterations times
     for i in range(iterations):
         test_wijk_1 = SmartGrid(1, version)
-        if test_wijk_1.costs() != None:
+
+        # keep track of costs and number of fails
+        if test_wijk_1.costs() is not None:
             results.append(test_wijk_1.costs())
         else:
             fails += 1
-    
+
+    # calculate percantage failed simulations and print that
     perc_fails = (fails / iterations) * 100
-    
     print(f"The percentage failed is {round(perc_fails, 1)}%")
+
     # plot the distribution of the results
     plt.hist(results, bins=20)
     plt.show()
-    
+
     # add the percentage of failure to the data and export
     results.append(perc_fails)
-    df = pd.DataFrame(results, columns = ["Costs"])
+    df = pd.DataFrame(results, columns=["Costs"])
     df.to_csv(f"Baseline_data/baseline{district}_{version}.csv")

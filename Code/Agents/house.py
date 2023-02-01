@@ -1,6 +1,11 @@
+"""
+This program creates a house class
+"""
+
 from __future__ import annotations
 from Agents.battery import Battery
 import mesa
+
 
 class House(mesa.Agent):
     """
@@ -22,18 +27,19 @@ class House(mesa.Agent):
         """
         super().__init__(unique_id, model)
         self.x = x
-        self.y = y 
+        self.y = y
         self.energy = energy
 
         # initialize connection, cable list and priority level
         self.connection: Battery = None
-        self.cables: list[Cable] = []
+        self.cables = []
         self.priority: float = 0
 
-    def add_cable(self, cable: Cable) -> None:
+    def add_cable(self, cable) -> None:
         """
-        Adds a cable to the house's cable list.
+        Adds a cable to the house's cable list
         """
+
         self.cables.append(cable)
 
     def distance(self, other: Battery) -> float:
@@ -47,6 +53,7 @@ class House(mesa.Agent):
         Returns:
             float: Manhattan distance between the house and battery.
         """
+
         return abs(self.x - other.x) + abs(self.y - other.y)
 
     def connect(self, other: Battery) -> None:
@@ -54,7 +61,7 @@ class House(mesa.Agent):
         Reduces the remaining energy in the battery
 
         Args:
-            other (House): A House with energy
+            other (Battery): A House with energy
         """
         self.connection = other
 
@@ -69,6 +76,7 @@ class House(mesa.Agent):
         Returns:
             bool: Returns True when the house is able to connect, else false.
         """
+
         if other.energy - self.energy >= 0:
             return True
         return False

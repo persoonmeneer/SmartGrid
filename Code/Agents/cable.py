@@ -1,5 +1,10 @@
+"""
+This program creates a cable class
+"""
+
 from __future__ import annotations
 import mesa
+
 
 class Cable(mesa.Agent):
     """
@@ -18,9 +23,9 @@ class Cable(mesa.Agent):
             y (int): y coordinate of the agent.
             battery_id (int): id of the battery to which the cable connects.
         """
-        
+
         super().__init__(unique_id, model)
         self.x = x
         self.y = y
-        self.battery_connection: Battery = None
+        self.battery_connection = None
         self.battery_id = battery_id
